@@ -6,6 +6,83 @@ import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 const DEFAULT_CENTER = { lat: 30.2672, lng: -97.7431 } // Austin, TX fallback
 const TRUSTI_COLORS = { red: '#ef4444', yellow: '#eab308', green: '#22c55e' }
 
+// Build an SVG marker for review counts
+// - Single dominant color: filled circle + thin ring in secondary color
+// - Even 2-way split: half-and-half circle
+// - Even 3-way split: thirds
+function buildReviewMarkerIcon(counts) {
+  const colors = ['green', 'yellow', 'red']
+  const active = colors.filter(c => counts[c] > 0)
+  const total = active.reduce((sum, c) => sum + counts[c], 0)
+  const size = 28
+  const r = 11 // main radius
+  const cx = size / 2
+  const cy = size / 2
+
+  let svg
+
+  if (active.length <= 1) {
+    // Single color — simple filled circle with white border
+    const color = active[0] || 'green'
+    svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${TRUSTI_COLORS[color]}" stroke="#fff" stroke-width="2.5"/>
+    </svg>`
+  } else {
+    // Check if there's a dominant color
+    const sorted = [...active].sort((a, b) => counts[b] - counts[a])
+    const isDominant = counts[sorted[0]] > counts[sorted[1]]
+
+    if (isDominant) {
+      // Dominant color fills circle, ring shows secondary colors
+      const dominant = sorted[0]
+      const secondaries = sorted.slice(1)
+      // Ring: split evenly among secondary colors
+      const ringWidth = 3
+      const ringR = r + 1
+      let ringParts = ''
+      if (secondaries.length === 1) {
+        ringParts = `<circle cx="${cx}" cy="${cy}" r="${ringR}" fill="none" stroke="${TRUSTI_COLORS[secondaries[0]]}" stroke-width="${ringWidth}"/>`
+      } else {
+        // Two secondary colors — split ring in half
+        ringParts = `
+          <path d="M ${cx} ${cy - ringR} A ${ringR} ${ringR} 0 0 1 ${cx} ${cy + ringR}" fill="none" stroke="${TRUSTI_COLORS[secondaries[0]]}" stroke-width="${ringWidth}"/>
+          <path d="M ${cx} ${cy + ringR} A ${ringR} ${ringR} 0 0 1 ${cx} ${cy - ringR}" fill="none" stroke="${TRUSTI_COLORS[secondaries[1]]}" stroke-width="${ringWidth}"/>
+        `
+      }
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+        ${ringParts}
+        <circle cx="${cx}" cy="${cy}" r="${r - 1}" fill="${TRUSTI_COLORS[dominant]}" stroke="#fff" stroke-width="1.5"/>
+      </svg>`
+    } else {
+      // Even split — pie chart segments
+      const segments = active.map(c => ({ color: c, value: counts[c] }))
+      let paths = ''
+      let startAngle = -Math.PI / 2 // start at top
+      segments.forEach(seg => {
+        const sliceAngle = (seg.value / total) * 2 * Math.PI
+        const endAngle = startAngle + sliceAngle
+        const x1 = cx + r * Math.cos(startAngle)
+        const y1 = cy + r * Math.sin(startAngle)
+        const x2 = cx + r * Math.cos(endAngle)
+        const y2 = cy + r * Math.sin(endAngle)
+        const largeArc = sliceAngle > Math.PI ? 1 : 0
+        paths += `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z" fill="${TRUSTI_COLORS[seg.color]}"/>`
+        startAngle = endAngle
+      })
+      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+        ${paths}
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="2.5"/>
+      </svg>`
+    }
+  }
+
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    scaledSize: new window.google.maps.Size(size, size),
+    anchor: new window.google.maps.Point(size / 2, size / 2),
+  }
+}
+
 function isZipCode(text) {
   return /^\d{5}$/.test(text.trim())
 }
@@ -109,19 +186,11 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
       const hasReviews = placeReviews.length > 0
       const isBookmarked = bookmarkedSet.has(place.placeId)
 
-      // Determine dominant color for marker (one vote per user)
+      // Determine marker icon based on review ratings (one vote per user)
       let icon
       if (hasReviews) {
         const counts = getDeduplicatedCounts(placeReviews)
-        const dominant = getDominantRating(counts)
-        icon = {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 12,
-          fillColor: TRUSTI_COLORS[dominant],
-          fillOpacity: 1,
-          strokeColor: '#fff',
-          strokeWeight: 2,
-        }
+        icon = buildReviewMarkerIcon(counts)
       } else if (isBookmarked) {
         // Bookmarked: star-like marker
         icon = {
