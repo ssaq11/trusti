@@ -114,10 +114,11 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
       <div
-        className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 max-h-[90vh] overflow-y-auto"
+        className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
+        {/* Header - always visible */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-2 shrink-0">
           <h2 className="text-lg font-semibold text-gray-900">
             {step === 'search' ? 'Find Restaurant' : 'Add Recommendation'}
           </h2>
@@ -126,154 +127,157 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
           </button>
         </div>
 
-        {/* Step 1: Search for restaurant */}
-        {step === 'search' && (
-          <div>
-            <div className="relative mb-3">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        {/* Scrollable content */}
+        <div className="px-5 overflow-y-auto flex-1 min-h-0">
+          {/* Step 1: Search for restaurant */}
+          {step === 'search' && (
+            <div>
+              <div className="relative mb-3">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search restaurants near you..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchInput(e.target.value)}
+                  autoFocus
+                  className="w-full pl-9 pr-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+
+              {searching && (
+                <p className="text-center text-gray-400 text-xs py-4">Searching...</p>
+              )}
+
+              {searchResults.length > 0 && (
+                <div className="space-y-1 mb-3">
+                  {searchResults.map(r => (
+                    <button
+                      key={r.placeId}
+                      type="button"
+                      onClick={() => selectPlace(r)}
+                      className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <MapPin size={16} className="text-green-500 mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{r.name}</p>
+                        <p className="text-xs text-gray-400 truncate">{r.address}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
+                <p className="text-center text-gray-400 text-sm py-6">No restaurants found</p>
+              )}
+
+              <div className="border-t border-gray-100 pt-3 mt-3">
+                <button
+                  type="button"
+                  onClick={useManualEntry}
+                  className="w-full py-2.5 text-sm text-green-600 font-medium hover:text-green-700"
+                >
+                  Enter restaurant manually instead
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 1b: Manual entry */}
+          {step === 'manual' && (
+            <div className="space-y-4">
               <input
                 type="text"
-                placeholder="Search restaurants near you..."
-                value={searchQuery}
-                onChange={(e) => handleSearchInput(e.target.value)}
+                placeholder="Restaurant name *"
+                value={restaurantName}
+                onChange={(e) => setRestaurantName(e.target.value)}
                 autoFocus
-                className="w-full pl-9 pr-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
+              <input
+                type="text"
+                placeholder="Address (optional)"
+                value={restaurantAddress}
+                onChange={(e) => setRestaurantAddress(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <input
+                type="text"
+                placeholder="Zip code (optional)"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+
+              <RatingPicker rating={rating} setRating={setRating} />
+
+              <textarea
+                placeholder="What did you think? (optional)"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={2}
+                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+              />
+
+              {error && <p className="text-red-500 text-xs text-center">{error}</p>}
             </div>
+          )}
 
-            {searching && (
-              <p className="text-center text-gray-400 text-xs py-4">Searching...</p>
-            )}
-
-            {searchResults.length > 0 && (
-              <div className="space-y-1 mb-3 max-h-64 overflow-y-auto">
-                {searchResults.map(r => (
-                  <button
-                    key={r.placeId}
-                    type="button"
-                    onClick={() => selectPlace(r)}
-                    className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <MapPin size={16} className="text-green-500 mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{r.name}</p>
-                      <p className="text-xs text-gray-400 truncate">{r.address}</p>
-                    </div>
+          {/* Step 2: Rate the selected restaurant */}
+          {step === 'rate' && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-3 flex items-start gap-3">
+                <MapPin size={16} className="text-green-500 mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">{restaurantName}</p>
+                  {restaurantAddress && <p className="text-xs text-gray-400 truncate">{restaurantAddress}</p>}
+                </div>
+                {!prefill && (
+                  <button type="button" onClick={() => setStep('search')} className="text-xs text-green-600 shrink-0">
+                    Change
                   </button>
-                ))}
+                )}
               </div>
-            )}
 
-            {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
-              <p className="text-center text-gray-400 text-sm py-6">No restaurants found</p>
-            )}
+              <RatingPicker rating={rating} setRating={setRating} />
 
-            <div className="border-t border-gray-100 pt-3 mt-3">
-              <button
-                type="button"
-                onClick={useManualEntry}
-                className="w-full py-2.5 text-sm text-green-600 font-medium hover:text-green-700"
-              >
-                Enter restaurant manually instead
-              </button>
+              <textarea
+                placeholder="What did you think? (optional)"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={2}
+                autoFocus
+                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+              />
+
+              {error && <p className="text-red-500 text-xs text-center">{error}</p>}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Step 1b: Manual entry */}
-        {step === 'manual' && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Restaurant name *"
-              value={restaurantName}
-              onChange={(e) => setRestaurantName(e.target.value)}
-              autoFocus
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-            <input
-              type="text"
-              placeholder="Address (optional)"
-              value={restaurantAddress}
-              onChange={(e) => setRestaurantAddress(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-            <input
-              type="text"
-              placeholder="Zip code (optional)"
-              value={zipCode}
-              onChange={(e) => setZipCode(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-
-            <RatingPicker rating={rating} setRating={setRating} />
-
-            <textarea
-              placeholder="What did you think? (optional)"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={3}
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
-            />
-
-            {error && <p className="text-red-500 text-xs text-center">{error}</p>}
-
+        {/* Submit button - always visible at bottom */}
+        {(step === 'rate' || step === 'manual') && (
+          <div className="px-5 py-4 border-t border-gray-100 shrink-0">
             <div className="flex gap-2">
+              {step === 'manual' && (
+                <button
+                  type="button"
+                  onClick={() => setStep('search')}
+                  className="px-4 py-3 text-sm text-gray-500 font-medium rounded-lg hover:bg-gray-50"
+                >
+                  Back
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setStep('search')}
-                className="px-4 py-3 text-sm text-gray-500 font-medium rounded-lg hover:bg-gray-50"
-              >
-                Back
-              </button>
-              <button
-                type="submit"
+                onClick={handleSubmit}
                 disabled={loading}
                 className="flex-1 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm"
               >
                 {loading ? 'Adding...' : 'Add Recommendation'}
               </button>
             </div>
-          </form>
-        )}
-
-        {/* Step 2: Rate the selected restaurant */}
-        {step === 'rate' && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="bg-gray-50 rounded-lg p-3 flex items-start gap-3">
-              <MapPin size={16} className="text-green-500 mt-0.5 shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900">{restaurantName}</p>
-                {restaurantAddress && <p className="text-xs text-gray-400 truncate">{restaurantAddress}</p>}
-              </div>
-              {!prefill && (
-                <button type="button" onClick={() => setStep('search')} className="text-xs text-green-600 shrink-0">
-                  Change
-                </button>
-              )}
-            </div>
-
-            <RatingPicker rating={rating} setRating={setRating} />
-
-            <textarea
-              placeholder="What did you think? (optional)"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={3}
-              autoFocus
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
-            />
-
-            {error && <p className="text-red-500 text-xs text-center">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm"
-            >
-              {loading ? 'Adding...' : 'Add Recommendation'}
-            </button>
-          </form>
+          </div>
         )}
       </div>
     </div>
