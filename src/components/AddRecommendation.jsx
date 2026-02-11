@@ -112,9 +112,9 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center" onClick={onClose}>
       <div
-        className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[90dvh] flex flex-col"
+        className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[85dvh] mb-16 sm:mb-0 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header - always visible */}
@@ -211,12 +211,11 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
 
               <RatingPicker rating={rating} setRating={setRating} />
 
-              <textarea
+              <BulletTextarea
                 placeholder="What did you think? (optional)"
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={setComment}
                 rows={2}
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
               />
 
               {error && <p className="text-red-500 text-xs text-center">{error}</p>}
@@ -241,13 +240,12 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
 
               <RatingPicker rating={rating} setRating={setRating} />
 
-              <textarea
+              <BulletTextarea
                 placeholder="What did you think? (optional)"
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={setComment}
                 rows={2}
                 autoFocus
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
               />
 
               {error && <p className="text-red-500 text-xs text-center">{error}</p>}
@@ -281,6 +279,57 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
         )}
       </div>
     </div>
+  )
+}
+
+function BulletTextarea({ value, onChange, placeholder, rows = 2, autoFocus = false }) {
+  function handleKeyDown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const textarea = e.target
+      const pos = textarea.selectionStart
+      const before = value.slice(0, pos)
+      const after = value.slice(pos)
+
+      // If current line is just a bullet with no text, remove it instead
+      const lines = before.split('\n')
+      const currentLine = lines[lines.length - 1]
+      if (currentLine.trim() === '\u2022') {
+        const newValue = lines.slice(0, -1).join('\n') + '\n' + after
+        onChange(newValue)
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = newValue.length - after.length
+        }, 0)
+        return
+      }
+
+      const newValue = before + '\n\u2022 ' + after
+      onChange(newValue)
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = pos + 3
+      }, 0)
+    }
+  }
+
+  function handleChange(e) {
+    let newValue = e.target.value
+    // Auto-add bullet when user starts typing in empty field
+    if (newValue.length === 1 && value === '' && newValue !== '\u2022') {
+      newValue = '\u2022 ' + newValue
+    }
+    onChange(newValue)
+  }
+
+  return (
+    <textarea
+      placeholder={placeholder}
+      value={value}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      rows={rows}
+      autoFocus={autoFocus}
+      className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+    />
   )
 }
 

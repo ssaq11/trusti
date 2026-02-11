@@ -267,6 +267,7 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
         zoom: 15,
         disableDefaultUI: true,
         zoomControl: true,
+        gestureHandling: 'greedy',
         keyboardShortcuts: false,
         mapTypeControl: false,
         streetViewControl: false,
@@ -361,7 +362,7 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
       <div className="relative shrink-0">
         <div
           ref={mapRef}
-          className="w-full h-48 sm:h-56 rounded-xl overflow-hidden bg-gray-200"
+          className="w-full h-64 sm:h-72 rounded-xl overflow-hidden bg-gray-200"
         >
           {!isGoogleMapsLoaded() && (
             <div className="flex items-center justify-center h-full text-gray-400 text-xs">

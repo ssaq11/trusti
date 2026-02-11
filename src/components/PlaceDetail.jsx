@@ -45,9 +45,9 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
   const totalReviews = reviews.length
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center" onClick={onClose}>
       <div
-        className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[85vh] overflow-y-auto"
+        className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[85dvh] mb-16 sm:mb-0 overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
