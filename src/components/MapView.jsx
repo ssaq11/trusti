@@ -336,8 +336,8 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
 
       skipNextIdleRef.current = true
       const c = mapInstanceRef.current.getCenter()
-      // fitResults=true for keyword searches so map pans to show results
-      await searchAtLocation({ lat: c.lat(), lng: c.lng() }, keyword, !!keyword)
+      // Search within current view first, don't zoom out
+      await searchAtLocation({ lat: c.lat(), lng: c.lng() }, keyword, false)
     }
 
     doSearch()
