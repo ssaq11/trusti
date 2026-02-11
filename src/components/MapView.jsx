@@ -46,29 +46,41 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
   }, [searchKeyword])
 
   // Search at a given center with a given keyword
-  // fitResults: if true, pan/zoom map to fit results (only for initial keyword search)
-  const searchAtLocation = useCallback(async (center, keyword, fitResults = false) => {
+  const searchAtLocation = useCallback(async (center, keyword) => {
     if (!mapInstanceRef.current) return
 
     setLoading(true)
     let results = await searchNearby(mapInstanceRef.current, center, keyword || '')
 
-    // For initial keyword searches, pan the map to fit all results
-    if (fitResults && results.length > 0) {
-      const fitBounds = new window.google.maps.LatLngBounds()
-      results.forEach(r => {
-        if (r.lat != null && r.lng != null) fitBounds.extend({ lat: r.lat, lng: r.lng })
-      })
-      skipNextIdleRef.current = true
-      mapInstanceRef.current.fitBounds(fitBounds, 40)
-      // Cap zoom so single results don't zoom to street level
-      const listener = mapInstanceRef.current.addListener('idle', () => {
-        listener.remove()
-        if (mapInstanceRef.current.getZoom() > 16) {
+    // For keyword searches: show only results within visible bounds.
+    // If none are in view, pan/zoom the map to show the nearest ones.
+    if (keyword && results.length > 0) {
+      const bounds = mapInstanceRef.current.getBounds()
+      if (bounds) {
+        const inView = results.filter(r =>
+          r.lat != null && r.lng != null &&
+          bounds.contains(new window.google.maps.LatLng(r.lat, r.lng))
+        )
+        if (inView.length > 0) {
+          // Found results in view — only show those
+          results = inView
+        } else {
+          // Nothing in view — pan map to show the nearest results
+          const fitBounds = new window.google.maps.LatLngBounds()
+          results.forEach(r => {
+            if (r.lat != null && r.lng != null) fitBounds.extend({ lat: r.lat, lng: r.lng })
+          })
           skipNextIdleRef.current = true
-          mapInstanceRef.current.setZoom(16)
+          mapInstanceRef.current.fitBounds(fitBounds, 40)
+          const listener = mapInstanceRef.current.addListener('idle', () => {
+            listener.remove()
+            if (mapInstanceRef.current.getZoom() > 16) {
+              skipNextIdleRef.current = true
+              mapInstanceRef.current.setZoom(16)
+            }
+          })
         }
-      })
+      }
     }
 
     setPlaces(results)
@@ -337,7 +349,7 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
       skipNextIdleRef.current = true
       const c = mapInstanceRef.current.getCenter()
       // Search within current view first, don't zoom out
-      await searchAtLocation({ lat: c.lat(), lng: c.lng() }, keyword, false)
+      await searchAtLocation({ lat: c.lat(), lng: c.lng() }, keyword)
     }
 
     doSearch()

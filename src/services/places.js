@@ -155,7 +155,8 @@ export async function searchNearby(mapInstance, location, keyword = '') {
   }
 
   if (keyword) {
-    // Keyword search: bias to visible map bounds so results match what's on screen
+    // Keyword search: bias to visible map bounds, return all results
+    // (let caller decide whether to filter or pan to fit)
     const request = {
       query: keyword,
     }
@@ -173,8 +174,7 @@ export async function searchNearby(mapInstance, location, keyword = '') {
           resolve([])
           return
         }
-        // Filter to visible bounds so list matches map markers
-        resolve(filterToBounds(results.map(mapResult)))
+        resolve(results.map(mapResult))
       })
     })
   }
