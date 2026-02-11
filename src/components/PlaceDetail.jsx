@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { X, MapPin, Plus, Bookmark } from 'lucide-react'
+import { X, MapPin, Plus, Bookmark, Pencil, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { isBookmarked, addBookmark, removeBookmark } from '../services/firestore'
+import { isBookmarked, addBookmark, removeBookmark, deleteRecommendation, updateRecommendation } from '../services/firestore'
+import { getDeduplicatedCounts } from '../utils/ratings'
 
 const RATING_CONFIG = {
   red: { bg: 'bg-red-500', label: "Don't go", textColor: 'text-red-600' },
@@ -10,10 +11,14 @@ const RATING_CONFIG = {
   green: { bg: 'bg-green-500', label: 'Must try!', textColor: 'text-green-600' },
 }
 
-export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBookmarkChange }) {
+export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBookmarkChange, onReviewChanged }) {
   const { user } = useAuth()
   const [bookmarked, setBookmarked] = useState(false)
   const [bookmarkLoading, setBookmarkLoading] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editComment, setEditComment] = useState('')
+  const [editRating, setEditRating] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (user?.uid && place?.placeId) {
@@ -39,9 +44,9 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
     setBookmarkLoading(false)
   }
 
-  // Group reviews by rating
-  const counts = { green: 0, yellow: 0, red: 0 }
-  reviews.forEach(r => { if (counts[r.rating] !== undefined) counts[r.rating]++ })
+  // Group reviews by rating (one vote per user for the summary)
+  const counts = getDeduplicatedCounts(reviews)
+  const totalVoters = counts.green + counts.yellow + counts.red
   const totalReviews = reviews.length
 
   return (
@@ -99,7 +104,7 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
                 })}
               </div>
               <p className="text-xs text-gray-500">
-                {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'} from your network
+                {totalVoters} {totalVoters === 1 ? 'person' : 'people'} from your network
               </p>
             </div>
           )}
@@ -136,14 +141,68 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
             </p>
             <div className="px-5 pb-5 space-y-3">
               {reviews.map(rec => {
-                const rating = RATING_CONFIG[rec.rating]
+                const ratingConfig = RATING_CONFIG[rec.rating]
                 const timeAgo = rec.createdAt?.seconds
                   ? getTimeAgo(rec.createdAt.seconds * 1000)
                   : ''
+                const isOwn = rec.userId === user?.uid
+                const isEditing = editingId === rec.id
+
+                if (isEditing) {
+                  return (
+                    <div key={rec.id} className="bg-gray-50 rounded-lg p-3 space-y-3">
+                      <div className="flex gap-3 justify-center">
+                        {['red', 'yellow', 'green'].map(color => {
+                          const cfg = RATING_CONFIG[color]
+                          return (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() => setEditRating(color)}
+                              className={`w-8 h-8 rounded-full ${cfg.bg} transition-all ${
+                                editRating === color ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'opacity-50'
+                              }`}
+                            />
+                          )
+                        })}
+                      </div>
+                      <textarea
+                        value={editComment}
+                        onChange={(e) => setEditComment(e.target.value)}
+                        rows={2}
+                        className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={async () => {
+                            setSaving(true)
+                            await updateRecommendation(rec.id, {
+                              rating: editRating,
+                              comment: editComment.trim()
+                            })
+                            setEditingId(null)
+                            setSaving(false)
+                            onReviewChanged?.()
+                          }}
+                          disabled={saving}
+                          className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg disabled:opacity-50"
+                        >
+                          {saving ? 'Saving...' : 'Save'}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                }
 
                 return (
                   <div key={rec.id} className="flex items-start gap-3">
-                    <div className={`mt-0.5 w-4 h-4 rounded-full ${rating.bg} shrink-0`} />
+                    <div className={`mt-0.5 w-4 h-4 rounded-full ${ratingConfig.bg} shrink-0`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <Link
@@ -162,10 +221,37 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
                             {rec.userName}
                           </span>
                         </Link>
-                        <span className={`text-[10px] font-medium ${rating.textColor}`}>
-                          {rating.label}
+                        <span className={`text-[10px] font-medium ${ratingConfig.textColor}`}>
+                          {ratingConfig.label}
                         </span>
                         {timeAgo && <span className="text-[10px] text-gray-300">{timeAgo}</span>}
+                        {isOwn && (
+                          <div className="flex items-center gap-1 ml-auto">
+                            <button
+                              onClick={() => {
+                                setEditingId(rec.id)
+                                setEditComment(rec.comment || '')
+                                setEditRating(rec.rating)
+                              }}
+                              className="p-1 text-gray-300 hover:text-green-600 transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (confirm('Delete this review?')) {
+                                  await deleteRecommendation(rec.id)
+                                  onReviewChanged?.()
+                                }
+                              }}
+                              className="p-1 text-gray-300 hover:text-red-500 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                       {rec.comment && (
                         <p className="text-sm text-gray-600 mt-1 leading-relaxed">{rec.comment}</p>

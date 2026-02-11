@@ -124,6 +124,7 @@ export default function HomePage() {
           onClose={() => setSelectedPlace(null)}
           onAddReview={handleAddReview}
           onBookmarkChange={loadBookmarks}
+          onReviewChanged={loadRecs}
         />
       )}
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Navigation, RefreshCw } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded } from '../services/places'
+import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 
 const DEFAULT_CENTER = { lat: 30.2672, lng: -97.7431 } // Austin, TX fallback
 const TRUSTI_COLORS = { red: '#ef4444', yellow: '#eab308', green: '#22c55e' }
@@ -108,13 +109,11 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
       const hasReviews = placeReviews.length > 0
       const isBookmarked = bookmarkedSet.has(place.placeId)
 
-      // Determine dominant color for marker
+      // Determine dominant color for marker (one vote per user)
       let icon
       if (hasReviews) {
-        const counts = { green: 0, yellow: 0, red: 0 }
-        placeReviews.forEach(r => { if (counts[r.rating] !== undefined) counts[r.rating]++ })
-        // Dominant = most votes, tiebreak: green > yellow > red
-        const dominant = ['green', 'yellow', 'red'].reduce((a, b) => counts[a] >= counts[b] ? a : b)
+        const counts = getDeduplicatedCounts(placeReviews)
+        const dominant = getDominantRating(counts)
         icon = {
           path: window.google.maps.SymbolPath.CIRCLE,
           scale: 12,
@@ -422,8 +421,7 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
           <div className="space-y-1.5">
             {places.map(place => {
               const placeReviews = trustiRecs.filter(r => r.restaurantPlaceId === place.placeId)
-              const counts = { green: 0, yellow: 0, red: 0 }
-              placeReviews.forEach(r => { if (counts[r.rating] !== undefined) counts[r.rating]++ })
+              const counts = getDeduplicatedCounts(placeReviews)
               const hasReviews = placeReviews.length > 0
               const isBookmarked = bookmarkedPlaceIds.includes(place.placeId)
 

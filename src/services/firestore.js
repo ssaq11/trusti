@@ -88,6 +88,10 @@ export async function deleteRecommendation(recId) {
   await deleteDoc(doc(db, 'recommendations', recId))
 }
 
+export async function updateRecommendation(recId, data) {
+  await updateDoc(doc(db, 'recommendations', recId), data)
+}
+
 // --- FOLLOWS ---
 
 export async function followUser(followerId, followingId) {
