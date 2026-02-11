@@ -7,15 +7,25 @@ import SearchPage from './components/SearchPage'
 import ProfilePage from './components/ProfilePage'
 import UserProfilePage from './components/UserProfilePage'
 import BottomNav from './components/BottomNav'
+import WaitingPage from './components/WaitingPage'
 
 function AppRoutes() {
-  const { user, loading } = useAuth()
+  const { user, approved, loading } = useAuth()
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
       </div>
+    )
+  }
+
+  // Logged in but not approved — show waiting screen
+  if (user && !approved) {
+    return (
+      <Routes>
+        <Route path="*" element={<WaitingPage />} />
+      </Routes>
     )
   }
 

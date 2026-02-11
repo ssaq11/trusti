@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, UserPlus, UserMinus } from 'lucide-react'
+import { Search, UserPlus, UserMinus, Share2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { searchUsers, followUser, unfollowUser, isFollowing } from '../services/firestore'
 
@@ -59,9 +59,49 @@ export default function SearchPage() {
     setLoadingFollows(prev => ({ ...prev, [targetUid]: false }))
   }
 
+  async function handleInvite() {
+    const inviteUrl = `${window.location.origin}?ref=${user.uid}`
+    const shareData = {
+      title: 'Join me on trusti!',
+      text: 'I\'m using trusti to share restaurant recs with friends. Join me!',
+      url: inviteUrl,
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          await copyToClipboard(inviteUrl)
+        }
+      }
+    } else {
+      await copyToClipboard(inviteUrl)
+    }
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text)
+      alert('Invite link copied to clipboard!')
+    } catch {
+      // Fallback for older browsers
+      prompt('Copy this invite link:', text)
+    }
+  }
+
   return (
     <div className="max-w-md mx-auto px-4 pt-4">
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Find People</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold text-gray-900">Find People</h1>
+        <button
+          onClick={handleInvite}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <Share2 size={14} />
+          Invite Friends
+        </button>
+      </div>
       <p className="text-xs text-gray-400 mb-4">Follow people to see their restaurant recommendations</p>
 
       {/* Search Input */}

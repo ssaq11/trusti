@@ -8,7 +8,7 @@ import {
   signOut,
   updateProfile
 } from 'firebase/auth'
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, getDoc, getDocs, updateDoc, serverTimestamp, collection, query, limit } from 'firebase/firestore'
 import { auth, db } from '../services/firebase'
 
 const AuthContext = createContext(null)
@@ -21,6 +21,7 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [approved, setApproved] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -28,7 +29,17 @@ export function AuthProvider({ children }) {
       if (firebaseUser) {
         const userRef = doc(db, 'users', firebaseUser.uid)
         const userSnap = await getDoc(userRef)
+
+        // Check if there's a referral in the URL
+        const params = new URLSearchParams(window.location.search)
+        const referrer = params.get('ref')
+
         if (!userSnap.exists()) {
+          // Check if this is the very first user (auto-approve the founder)
+          const usersSnap = await getDocs(query(collection(db, 'users'), limit(1)))
+          const isFirstUser = usersSnap.empty
+
+          const isApproved = isFirstUser || !!referrer
           await setDoc(userRef, {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
@@ -38,16 +49,42 @@ export function AuthProvider({ children }) {
             location: { type: 'manual', lat: null, lng: null, zipCode: null, neighborhood: null },
             followersCount: 0,
             followingCount: 0,
+            approved: isApproved,
+            invitedBy: referrer || null,
             createdAt: serverTimestamp()
           })
-        } else if (!userSnap.data().displayNameLower) {
-          // Backfill displayNameLower for existing users
-          const name = userSnap.data().displayName || firebaseUser.email.split('@')[0]
-          await updateDoc(userRef, { displayNameLower: name.toLowerCase() })
+          setApproved(isApproved)
+
+          // Clean up the URL param
+          if (referrer) {
+            window.history.replaceState({}, '', window.location.pathname)
+          }
+        } else {
+          // Existing user
+          const data = userSnap.data()
+
+          if (data.approved === undefined) {
+            // Pre-existing user before invite system — auto-approve
+            await updateDoc(userRef, { approved: true })
+            setApproved(true)
+          } else if (!data.approved && referrer) {
+            // Got invited now — upgrade
+            await updateDoc(userRef, { approved: true, invitedBy: referrer })
+            setApproved(true)
+            window.history.replaceState({}, '', window.location.pathname)
+          } else {
+            setApproved(data.approved === true)
+          }
+
+          if (!data.displayNameLower) {
+            const name = data.displayName || firebaseUser.email.split('@')[0]
+            await updateDoc(userRef, { displayNameLower: name.toLowerCase() })
+          }
         }
         setUser(firebaseUser)
       } else {
         setUser(null)
+        setApproved(false)
       }
       setLoading(false)
     })
@@ -73,7 +110,7 @@ export function AuthProvider({ children }) {
     return signOut(auth)
   }
 
-  const value = { user, loading, signup, login, loginWithGoogle, logout }
+  const value = { user, approved, loading, signup, login, loginWithGoogle, logout }
 
   return (
     <AuthContext.Provider value={value}>

@@ -149,3 +149,15 @@ export async function getBookmarks(userId) {
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
+
+// --- ACCESS CONTROL ---
+
+export async function isUserApproved(uid) {
+  const snap = await getDoc(doc(db, 'users', uid))
+  if (!snap.exists()) return false
+  return snap.data().approved === true
+}
+
+export async function approveUser(uid) {
+  await updateDoc(doc(db, 'users', uid), { approved: true })
+}
