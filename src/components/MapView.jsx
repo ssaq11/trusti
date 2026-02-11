@@ -297,8 +297,8 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
         if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
         idleTimerRef.current = setTimeout(() => {
           const c = map.getCenter()
-          // Browse the visible area (no fitResults, so map won't snap back)
-          searchAtLocation({ lat: c.lat(), lng: c.lng() }, '')
+          // Re-search with the active keyword (or empty for browse mode)
+          searchAtLocation({ lat: c.lat(), lng: c.lng() }, searchKeywordRef.current || '')
         }, 600)
       })
 

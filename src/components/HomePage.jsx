@@ -57,7 +57,14 @@ export default function HomePage() {
 
   function handleSearch(e) {
     e.preventDefault()
-    setSearchKeyword(searchInput.trim())
+    const keyword = searchInput.trim()
+    // Force re-trigger even if keyword is the same by clearing first
+    if (keyword === searchKeyword) {
+      setSearchKeyword('')
+      setTimeout(() => setSearchKeyword(keyword), 0)
+    } else {
+      setSearchKeyword(keyword)
+    }
   }
 
   function clearSearch() {
