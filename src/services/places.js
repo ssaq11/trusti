@@ -155,12 +155,15 @@ export async function searchNearby(mapInstance, location, keyword = '') {
   }
 
   if (keyword) {
-    // Keyword search: use location bias (not bounds restriction)
-    // so results aren't limited to the current viewport
+    // Keyword search: bias to visible map bounds so results match what's on screen
     const request = {
       query: keyword,
-      location: latLng,
-      radius: 50000, // 50km bias radius
+    }
+    if (bounds) {
+      request.bounds = bounds
+    } else {
+      request.location = latLng
+      request.radius = 5000
     }
 
     return new Promise((resolve) => {
@@ -170,8 +173,8 @@ export async function searchNearby(mapInstance, location, keyword = '') {
           resolve([])
           return
         }
-        // Don't filter to bounds — we want all results, map will pan to fit them
-        resolve(results.map(mapResult))
+        // Filter to visible bounds so list matches map markers
+        resolve(filterToBounds(results.map(mapResult)))
       })
     })
   }
