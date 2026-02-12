@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Navigation, RefreshCw } from 'lucide-react'
+import { Navigation, RefreshCw, ChevronRight } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 
@@ -218,28 +218,18 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
           }
         })
 
-        // Pan/zoom to show keyword results if none are in current view
+        // Pan to nearest keyword result so user can see it
         if (keywordResults.length > 0) {
-          const bounds = mapInstanceRef.current.getBounds()
-          if (bounds) {
-            const inView = keywordResults.filter(r =>
-              r.lat != null && r.lng != null &&
-              bounds.contains(new window.google.maps.LatLng(r.lat, r.lng))
-            )
-            if (inView.length === 0) {
-              const fitBounds = new window.google.maps.LatLngBounds()
-              keywordResults.forEach(r => {
-                if (r.lat != null && r.lng != null) fitBounds.extend({ lat: r.lat, lng: r.lng })
-              })
-              skipNextIdleRef.current = true
-              mapInstanceRef.current.fitBounds(fitBounds, 40)
-              const listener = mapInstanceRef.current.addListener('idle', () => {
-                listener.remove()
-                if (mapInstanceRef.current.getZoom() > 16) {
-                  skipNextIdleRef.current = true
-                  mapInstanceRef.current.setZoom(16)
-                }
-              })
+          const nearest = keywordResults.reduce((best, r) => {
+            if (r.lat == null || r.lng == null) return best
+            const dist = Math.pow(r.lat - center.lat, 2) + Math.pow(r.lng - center.lng, 2)
+            return (!best || dist < best.dist) ? { place: r, dist } : best
+          }, null)
+          if (nearest) {
+            skipNextIdleRef.current = true
+            mapInstanceRef.current.panTo({ lat: nearest.place.lat, lng: nearest.place.lng })
+            if (mapInstanceRef.current.getZoom() < 14) {
+              mapInstanceRef.current.setZoom(15)
             }
           }
         }
@@ -247,7 +237,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         results = await searchNearby(mapInstanceRef.current, center, '')
       }
 
-      // Also add trusti-reviewed places not already in Google results
+      // Also add trusti-reviewed and bookmarked places not already in results
       const resultPlaceIds = new Set(results.map(r => r.placeId))
       const bounds = mapInstanceRef.current.getBounds()
       reviewsByPlace.forEach((recs, placeId) => {
@@ -261,6 +251,25 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
               placeId,
               name: rec.restaurantName,
               address: rec.restaurantAddress || '',
+              lat,
+              lng,
+              photoUrl: null,
+              rating: null,
+            })
+            resultPlaceIds.add(placeId)
+          }
+        }
+      })
+      bookmarks.forEach(b => {
+        if (resultPlaceIds.has(b.placeId)) return
+        const lat = b.placeLat
+        const lng = b.placeLng
+        if (lat != null && lng != null) {
+          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
+            results.push({
+              placeId: b.placeId,
+              name: b.placeName,
+              address: b.placeAddress || '',
               lat,
               lng,
               photoUrl: null,
@@ -624,62 +633,82 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
               const isBookmarked = bookmarks.some(b => b.placeId === place.placeId)
 
               return (
-                <button
+                <div
                   key={place.placeId}
-                  onClick={() => onPlaceSelect?.({
-                    placeId: place.placeId,
-                    name: place.name,
-                    address: place.address,
-                    lat: place.lat,
-                    lng: place.lng,
-                  })}
-                  className="w-full flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors text-left"
+                  className="flex items-center bg-white rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0">
-                    {place.photoUrl ? (
-                      <img src={place.photoUrl} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-lg">
-                        🍽
-                      </div>
-                    )}
-                  </div>
+                  {/* Tapping the main area pans the map to this place */}
+                  <button
+                    onClick={() => {
+                      if (place.lat != null && place.lng != null && mapInstanceRef.current) {
+                        skipNextIdleRef.current = true
+                        mapInstanceRef.current.panTo({ lat: place.lat, lng: place.lng })
+                        if (mapInstanceRef.current.getZoom() < 15) {
+                          mapInstanceRef.current.setZoom(15)
+                        }
+                      }
+                    }}
+                    className="flex-1 flex items-center gap-3 p-3 text-left min-w-0"
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0">
+                      {place.photoUrl ? (
+                        <img src={place.photoUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-lg">
+                          🍽
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{place.name}</p>
-                    <p className="text-xs text-gray-400 truncate">{place.address}</p>
-                    {place.rating && (
-                      <p className="text-[10px] text-gray-400 mt-0.5">⭐ {place.rating}</p>
-                    )}
-                  </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{place.name}</p>
+                      <p className="text-xs text-gray-400 truncate">{place.address}</p>
+                      {place.rating && (
+                        <p className="text-[10px] text-gray-400 mt-0.5">⭐ {place.rating}</p>
+                      )}
+                    </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Stoplight dots with counts */}
-                    {hasReviews && (
-                      <div className="flex items-center gap-1">
-                        {['green', 'yellow', 'red'].map(color => {
-                          if (counts[color] === 0) return null
-                          const bgClass = color === 'green' ? 'bg-green-500' :
-                                          color === 'yellow' ? 'bg-yellow-400' : 'bg-red-500'
-                          return (
-                            <div
-                              key={color}
-                              className={`w-5 h-5 rounded-full ${bgClass} flex items-center justify-center`}
-                            >
-                              {counts[color] > 1 && (
-                                <span className="text-white text-[9px] font-bold">{counts[color]}</span>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                    {/* Bookmark indicator */}
-                    {isBookmarked && (
-                      <span className="text-purple-500 text-sm" title="Want to go">★</span>
-                    )}
-                  </div>
-                </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {hasReviews && (
+                        <div className="flex items-center gap-1">
+                          {['green', 'yellow', 'red'].map(color => {
+                            if (counts[color] === 0) return null
+                            const bgClass = color === 'green' ? 'bg-green-500' :
+                                            color === 'yellow' ? 'bg-yellow-400' : 'bg-red-500'
+                            return (
+                              <div
+                                key={color}
+                                className={`w-5 h-5 rounded-full ${bgClass} flex items-center justify-center`}
+                              >
+                                {counts[color] > 1 && (
+                                  <span className="text-white text-[9px] font-bold">{counts[color]}</span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                      {isBookmarked && (
+                        <span className="text-purple-500 text-sm" title="Want to go">★</span>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Detail/review button */}
+                  <button
+                    onClick={() => onPlaceSelect?.({
+                      placeId: place.placeId,
+                      name: place.name,
+                      address: place.address,
+                      lat: place.lat,
+                      lng: place.lng,
+                    })}
+                    className="px-2 py-3 shrink-0 text-gray-300 hover:text-green-600 transition-colors self-stretch flex items-center"
+                    title="View details"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
               )
             })}
           </div>
