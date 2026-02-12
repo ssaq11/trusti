@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Search } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { getFollowingIds, getFeedRecommendations, getDiscoverRecommendations, getBookmarks } from '../services/firestore'
+import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks } from '../services/firestore'
 import MapView from './MapView'
 import PlaceDetail from './PlaceDetail'
 import AddRecommendation from './AddRecommendation'
@@ -9,16 +9,17 @@ import AddRecommendation from './AddRecommendation'
 export default function HomePage() {
   const { user } = useAuth()
   const [allRecs, setAllRecs] = useState([])
-  const [bookmarkedPlaceIds, setBookmarkedPlaceIds] = useState([])
+  const [allBookmarks, setAllBookmarks] = useState([])
   const [selectedPlace, setSelectedPlace] = useState(null) // place detail view
   const [showAdd, setShowAdd] = useState(null) // add recommendation modal
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [filter, setFilter] = useState('all') // 'all' | 'reviewed' | 'bookmarked'
 
   // Load all recommendations to overlay on map
   const loadRecs = useCallback(async () => {
     try {
-      const ids = await getFollowingIds(user.uid)
+      const ids = await getTrusti9(user.uid)
       const allIds = [...ids, user.uid]
       const recs = await getFeedRecommendations(allIds)
       if (recs.length === 0) {
@@ -34,8 +35,8 @@ export default function HomePage() {
 
   const loadBookmarks = useCallback(async () => {
     try {
-      const bookmarks = await getBookmarks(user.uid)
-      setBookmarkedPlaceIds(bookmarks.map(b => b.placeId))
+      const bmarks = await getBookmarks(user.uid)
+      setAllBookmarks(bmarks)
     } catch (err) {
       console.error('Failed to load bookmarks:', err)
     }
@@ -79,7 +80,7 @@ export default function HomePage() {
         <h1 className="text-2xl font-bold text-green-600 mb-3">trusti</h1>
 
         {/* Search bar */}
-        <form onSubmit={handleSearch} className="relative mb-1">
+        <form onSubmit={handleSearch} className="relative mb-2">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -104,6 +105,27 @@ export default function HomePage() {
             Go
           </button>
         </form>
+
+        {/* Filter tabs */}
+        <div className="flex gap-2 mb-1">
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'reviewed', label: 'Trusti Reviews' },
+            { key: 'bookmarked', label: 'Want to Go' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                filter === tab.key
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Map + scrollable places list */}
@@ -112,7 +134,8 @@ export default function HomePage() {
           onPlaceSelect={handlePlaceSelect}
           searchKeyword={searchKeyword}
           trustiRecs={allRecs}
-          bookmarkedPlaceIds={bookmarkedPlaceIds}
+          bookmarks={allBookmarks}
+          filter={filter}
         />
       </div>
 

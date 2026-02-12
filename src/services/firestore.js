@@ -118,6 +118,15 @@ export async function getFollowingIds(uid) {
   return snap.docs.map(d => d.data().followingId)
 }
 
+export async function getFollowingProfiles(uid) {
+  const ids = await getFollowingIds(uid)
+  if (ids.length === 0) return []
+  const profiles = await Promise.all(
+    ids.map(id => getUserProfile(id))
+  )
+  return profiles.filter(Boolean)
+}
+
 export async function isFollowing(followerId, followingId) {
   const docId = `${followerId}_${followingId}`
   const snap = await getDoc(doc(db, 'follows', docId))
@@ -133,6 +142,8 @@ export async function addBookmark(userId, placeData) {
     placeId: placeData.placeId,
     placeName: placeData.name,
     placeAddress: placeData.address || '',
+    placeLat: placeData.lat || null,
+    placeLng: placeData.lng || null,
     createdAt: serverTimestamp()
   })
 }
@@ -152,6 +163,26 @@ export async function getBookmarks(userId) {
   const q = query(collection(db, 'bookmarks'), where('userId', '==', userId))
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
+// --- TRUSTI 9 ---
+
+export async function getTrusti9(uid) {
+  const snap = await getDoc(doc(db, 'users', uid))
+  if (!snap.exists()) return []
+  return snap.data().trusti9 || []
+}
+
+export async function addToTrusti9(uid, targetUid) {
+  const current = await getTrusti9(uid)
+  if (current.length >= 9 || current.includes(targetUid)) return false
+  await updateDoc(doc(db, 'users', uid), { trusti9: [...current, targetUid] })
+  return true
+}
+
+export async function removeFromTrusti9(uid, targetUid) {
+  const current = await getTrusti9(uid)
+  await updateDoc(doc(db, 'users', uid), { trusti9: current.filter(id => id !== targetUid) })
 }
 
 // --- ACCESS CONTROL ---

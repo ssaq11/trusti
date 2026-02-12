@@ -21,6 +21,8 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
   const [restaurantAddress, setRestaurantAddress] = useState(prefill?.address || '')
   const [zipCode, setZipCode] = useState(prefill?.zipCode || '')
   const [placeId, setPlaceId] = useState(prefill?.placeId || null)
+  const [restaurantLat, setRestaurantLat] = useState(prefill?.lat || null)
+  const [restaurantLng, setRestaurantLng] = useState(prefill?.lng || null)
 
   // Fetch full details when prefilled from map (may lack address/zip)
   useEffect(() => {
@@ -59,6 +61,8 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
     setRestaurantName(result.name)
     setRestaurantAddress(result.address)
     setPlaceId(result.placeId)
+    setRestaurantLat(result.lat || null)
+    setRestaurantLng(result.lng || null)
 
     // Fetch full details for zip code
     const details = await getPlaceDetails(result.placeId)
@@ -96,8 +100,8 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
         restaurantName: restaurantName.trim(),
         restaurantAddress: restaurantAddress.trim(),
         restaurantPlaceId: placeId,
-        restaurantLat: null,
-        restaurantLng: null,
+        restaurantLat: restaurantLat,
+        restaurantLng: restaurantLng,
         rating,
         comment: comment.trim(),
         zipCode: zipCode.trim() || null,

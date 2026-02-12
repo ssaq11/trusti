@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, getDocs, updateDoc, serverTimestamp, collection, query, limit } from 'firebase/firestore'
 import { auth, db } from '../services/firebase'
+import { followUser, addToTrusti9 } from '../services/firestore'
 
 const AuthContext = createContext(null)
 
@@ -55,8 +56,15 @@ export function AuthProvider({ children }) {
           })
           setApproved(isApproved)
 
-          // Clean up the URL param
+          // Auto-follow: inviter and invitee become friends
           if (referrer) {
+            try {
+              await followUser(firebaseUser.uid, referrer) // new user follows inviter
+              await followUser(referrer, firebaseUser.uid) // inviter follows new user
+              await addToTrusti9(firebaseUser.uid, referrer) // add inviter to new user's trusti 9
+            } catch (err) {
+              console.error('Auto-follow failed:', err)
+            }
             window.history.replaceState({}, '', window.location.pathname)
           }
         } else {
@@ -71,6 +79,14 @@ export function AuthProvider({ children }) {
             // Got invited now — upgrade
             await updateDoc(userRef, { approved: true, invitedBy: referrer })
             setApproved(true)
+            // Auto-follow: inviter and invitee become friends
+            try {
+              await followUser(firebaseUser.uid, referrer)
+              await followUser(referrer, firebaseUser.uid)
+              await addToTrusti9(firebaseUser.uid, referrer) // add inviter to trusti 9
+            } catch (err) {
+              console.error('Auto-follow failed:', err)
+            }
             window.history.replaceState({}, '', window.location.pathname)
           } else {
             setApproved(data.approved === true)

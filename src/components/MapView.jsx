@@ -104,12 +104,13 @@ async function geocodeLocation(query) {
   })
 }
 
-export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [], bookmarkedPlaceIds = [] }) {
+export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersRef = useRef([])
   const userMarkerRef = useRef(null)
   const searchKeywordRef = useRef(searchKeyword)
+  const filterRef = useRef(filter)
   const idleTimerRef = useRef(null)
   const skipNextIdleRef = useRef(false)
   const [places, setPlaces] = useState([])
@@ -118,54 +119,22 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
   const [loading, setLoading] = useState(true)
   const [locating, setLocating] = useState(false)
 
-  // Keep keyword ref in sync
+  // Keep refs in sync
   useEffect(() => {
     searchKeywordRef.current = searchKeyword
   }, [searchKeyword])
+
+  useEffect(() => {
+    filterRef.current = filter
+  }, [filter])
 
   // Search at a given center with a given keyword
   const searchAtLocation = useCallback(async (center, keyword) => {
     if (!mapInstanceRef.current) return
 
+    const activeFilter = filterRef.current
+
     setLoading(true)
-    let results = await searchNearby(mapInstanceRef.current, center, keyword || '')
-
-    // For keyword searches: show only results within visible bounds.
-    // If none are in view, pan/zoom the map to show the nearest ones.
-    if (keyword && results.length > 0) {
-      const bounds = mapInstanceRef.current.getBounds()
-      if (bounds) {
-        const inView = results.filter(r =>
-          r.lat != null && r.lng != null &&
-          bounds.contains(new window.google.maps.LatLng(r.lat, r.lng))
-        )
-        if (inView.length > 0) {
-          // Found results in view — only show those
-          results = inView
-        } else {
-          // Nothing in view — pan map to show the nearest results
-          const fitBounds = new window.google.maps.LatLngBounds()
-          results.forEach(r => {
-            if (r.lat != null && r.lng != null) fitBounds.extend({ lat: r.lat, lng: r.lng })
-          })
-          skipNextIdleRef.current = true
-          mapInstanceRef.current.fitBounds(fitBounds, 40)
-          const listener = mapInstanceRef.current.addListener('idle', () => {
-            listener.remove()
-            if (mapInstanceRef.current.getZoom() > 16) {
-              skipNextIdleRef.current = true
-              mapInstanceRef.current.setZoom(16)
-            }
-          })
-        }
-      }
-    }
-
-    setPlaces(results)
-
-    // Clear old markers
-    markersRef.current.forEach(m => m.setMap(null))
-    markersRef.current = []
 
     // Group reviews by placeId
     const reviewsByPlace = new Map()
@@ -178,21 +147,139 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
       }
     })
 
-    // Build a set of bookmarked IDs for quick lookup
-    const bookmarkedSet = new Set(bookmarkedPlaceIds)
+    // Build bookmark lookup
+    const bookmarkedSet = new Set(bookmarks.map(b => b.placeId))
+
+    let results = []
+
+    // For "reviewed" and "bookmarked" filters, skip Google Places search
+    if (activeFilter === 'reviewed') {
+      // Show only trusti-reviewed places (those with lat/lng)
+      const bounds = mapInstanceRef.current.getBounds()
+      reviewsByPlace.forEach((recs, placeId) => {
+        const rec = recs[0]
+        const lat = rec.restaurantLat
+        const lng = rec.restaurantLng
+        if (lat != null && lng != null) {
+          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
+            results.push({
+              placeId,
+              name: rec.restaurantName,
+              address: rec.restaurantAddress || '',
+              lat,
+              lng,
+              photoUrl: null,
+              rating: null,
+            })
+          }
+        }
+      })
+    } else if (activeFilter === 'bookmarked') {
+      // Show only bookmarked places
+      const bounds = mapInstanceRef.current.getBounds()
+      bookmarks.forEach(b => {
+        const lat = b.placeLat
+        const lng = b.placeLng
+        if (lat != null && lng != null) {
+          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
+            results.push({
+              placeId: b.placeId,
+              name: b.placeName,
+              address: b.placeAddress || '',
+              lat,
+              lng,
+              photoUrl: null,
+              rating: null,
+            })
+          }
+        }
+      })
+    } else {
+      // "all" filter — use Google Places search
+      results = await searchNearby(mapInstanceRef.current, center, keyword || '')
+
+      // For keyword searches: show only results within visible bounds.
+      // If none are in view, pan/zoom the map to show the nearest ones.
+      if (keyword && results.length > 0) {
+        const bounds = mapInstanceRef.current.getBounds()
+        if (bounds) {
+          const inView = results.filter(r =>
+            r.lat != null && r.lng != null &&
+            bounds.contains(new window.google.maps.LatLng(r.lat, r.lng))
+          )
+          if (inView.length > 0) {
+            results = inView
+          } else {
+            const fitBounds = new window.google.maps.LatLngBounds()
+            results.forEach(r => {
+              if (r.lat != null && r.lng != null) fitBounds.extend({ lat: r.lat, lng: r.lng })
+            })
+            skipNextIdleRef.current = true
+            mapInstanceRef.current.fitBounds(fitBounds, 40)
+            const listener = mapInstanceRef.current.addListener('idle', () => {
+              listener.remove()
+              if (mapInstanceRef.current.getZoom() > 16) {
+                skipNextIdleRef.current = true
+                mapInstanceRef.current.setZoom(16)
+              }
+            })
+          }
+        }
+      }
+
+      // Also add trusti-reviewed places not already in Google results
+      const resultPlaceIds = new Set(results.map(r => r.placeId))
+      const bounds = mapInstanceRef.current.getBounds()
+      reviewsByPlace.forEach((recs, placeId) => {
+        if (resultPlaceIds.has(placeId)) return
+        const rec = recs[0]
+        const lat = rec.restaurantLat
+        const lng = rec.restaurantLng
+        if (lat != null && lng != null) {
+          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
+            results.push({
+              placeId,
+              name: rec.restaurantName,
+              address: rec.restaurantAddress || '',
+              lat,
+              lng,
+              photoUrl: null,
+              rating: null,
+            })
+          }
+        }
+      })
+    }
+
+    // Sort by rating when in "reviewed" filter
+    if (activeFilter === 'reviewed') {
+      results.sort((a, b) => {
+        const countsA = getDeduplicatedCounts(reviewsByPlace.get(a.placeId) || [])
+        const countsB = getDeduplicatedCounts(reviewsByPlace.get(b.placeId) || [])
+        // Score: green=3, yellow=2, red=1, weighted by count
+        const scoreA = countsA.green * 3 + countsA.yellow * 2 + countsA.red
+        const scoreB = countsB.green * 3 + countsB.yellow * 2 + countsB.red
+        return scoreB - scoreA
+      })
+    }
+
+    setPlaces(results)
+
+    // Clear old markers
+    markersRef.current.forEach(m => m.setMap(null))
+    markersRef.current = []
 
     results.forEach(place => {
       const placeReviews = reviewsByPlace.get(place.placeId) || []
       const hasReviews = placeReviews.length > 0
       const isBookmarked = bookmarkedSet.has(place.placeId)
 
-      // Determine marker icon based on review ratings (one vote per user)
+      // Determine marker icon
       let icon
       if (hasReviews) {
         const counts = getDeduplicatedCounts(placeReviews)
         icon = buildReviewMarkerIcon(counts)
       } else if (isBookmarked) {
-        // Bookmarked: star-like marker
         icon = {
           path: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
           fillColor: '#8b5cf6',
@@ -203,7 +290,6 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
           anchor: new window.google.maps.Point(12, 12),
         }
       } else if (keyword) {
-        // Search result: visible green pin marker
         icon = {
           path: 'M12 0C7.58 0 4 3.58 4 8c0 5.25 8 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z',
           fillColor: '#16a34a',
@@ -214,7 +300,6 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
           anchor: new window.google.maps.Point(12, 21),
         }
       } else {
-        // Default browsing: small gray dot
         icon = {
           path: window.google.maps.SymbolPath.CIRCLE,
           scale: 7,
@@ -246,7 +331,7 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
     })
 
     setLoading(false)
-  }, [trustiRecs, bookmarkedPlaceIds, onPlaceSelect])
+  }, [trustiRecs, bookmarks, onPlaceSelect])
 
   // Request location and move map there
   async function goToMyLocation() {
@@ -396,7 +481,7 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
     }
   }, [])
 
-  // Search when keyword changes from the search bar
+  // Search when keyword or filter changes
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return
 
@@ -417,12 +502,11 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
 
       skipNextIdleRef.current = true
       const c = mapInstanceRef.current.getCenter()
-      // Search within current view first, don't zoom out
       await searchAtLocation({ lat: c.lat(), lng: c.lng() }, keyword)
     }
 
     doSearch()
-  }, [mapReady, searchKeyword, searchAtLocation])
+  }, [mapReady, searchKeyword, filter, searchAtLocation])
 
   return (
     <div className="flex flex-col h-full">
@@ -480,9 +564,13 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
 
         {!loading && places.length === 0 && (
           <p className="text-center text-gray-400 text-sm py-6">
-            {isGoogleMapsLoaded()
-              ? 'No restaurants found nearby. Try a different search.'
-              : 'Maps not loaded. Enable billing on Google Cloud to use Places API.'}
+            {!isGoogleMapsLoaded()
+              ? 'Maps not loaded. Enable billing on Google Cloud to use Places API.'
+              : filter === 'reviewed'
+              ? 'No trusti reviews in this area yet. Be the first!'
+              : filter === 'bookmarked'
+              ? 'No saved places in this area. Bookmark places to see them here!'
+              : 'No restaurants found nearby. Try a different search.'}
           </p>
         )}
 
@@ -492,7 +580,7 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
               const placeReviews = trustiRecs.filter(r => r.restaurantPlaceId === place.placeId)
               const counts = getDeduplicatedCounts(placeReviews)
               const hasReviews = placeReviews.length > 0
-              const isBookmarked = bookmarkedPlaceIds.includes(place.placeId)
+              const isBookmarked = bookmarks.some(b => b.placeId === place.placeId)
 
               return (
                 <button
