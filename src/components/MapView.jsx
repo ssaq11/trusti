@@ -114,7 +114,6 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
   const searchAtLocationRef = useRef(null)
   const idleTimerRef = useRef(null)
   const skipNextIdleRef = useRef(false)
-  const searchGenRef = useRef(0) // generation counter to cancel stale searches
   const [places, setPlaces] = useState([])
   const [userLocation, setUserLocation] = useState(null)
   const [mapReady, setMapReady] = useState(false)
@@ -135,7 +134,6 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
     if (!mapInstanceRef.current) return
 
     const activeFilter = filterRef.current
-    const gen = ++searchGenRef.current // increment generation to cancel any prior search
 
     setLoading(true)
 
@@ -200,10 +198,9 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
     } else {
       // "all" filter — use Google Places search
       results = await searchNearby(mapInstanceRef.current, center, keyword || '')
-      // Check if this search was cancelled by a newer one (e.g. filter switch)
-      if (gen !== searchGenRef.current) return
 
-      // For keyword searches: show keyword results + nearby places
+      // For keyword searches: show only results within visible bounds.
+      // If none are in view, pan/zoom the map to show the nearest ones.
       if (keyword && results.length > 0) {
         const bounds = mapInstanceRef.current.getBounds()
         if (bounds) {
@@ -229,23 +226,9 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
             })
           }
         }
-
-        // Mark keyword results so they sort first in list
-        const keywordPlaceIds = new Set(results.map(r => r.placeId))
-        results.forEach(r => { r._keywordMatch = true })
-
-        // Also fetch nearby places so the map isn't empty around keyword results
-        const nearbyResults = await searchNearby(mapInstanceRef.current, center, '')
-        // Check if this search was cancelled by a newer one (e.g. filter switch)
-        if (gen !== searchGenRef.current) return
-        nearbyResults.forEach(r => {
-          if (!keywordPlaceIds.has(r.placeId)) {
-            results.push(r)
-          }
-        })
       }
 
-      // Also add trusti-reviewed places not already in results
+      // Also add trusti-reviewed places not already in Google results
       const resultPlaceIds = new Set(results.map(r => r.placeId))
       const bounds = mapInstanceRef.current.getBounds()
       reviewsByPlace.forEach((recs, placeId) => {
@@ -266,18 +249,6 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
             })
           }
         }
-      })
-    }
-
-    // Sort: keyword matches first, then reviewed, then rest
-    if (keyword && activeFilter === 'all') {
-      results.sort((a, b) => {
-        const aKey = a._keywordMatch ? 1 : 0
-        const bKey = b._keywordMatch ? 1 : 0
-        if (aKey !== bKey) return bKey - aKey
-        const aRev = reviewsByPlace.has(a.placeId) ? 1 : 0
-        const bRev = reviewsByPlace.has(b.placeId) ? 1 : 0
-        return bRev - aRev
       })
     }
 
@@ -538,6 +509,7 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
         }
       }
 
+      skipNextIdleRef.current = true
       const c = mapInstanceRef.current.getCenter()
       await searchAtLocation({ lat: c.lat(), lng: c.lng() }, keyword)
     }
