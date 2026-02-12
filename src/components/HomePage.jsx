@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Search } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks } from '../services/firestore'
+import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords } from '../services/firestore'
 import MapView from './MapView'
 import PlaceDetail from './PlaceDetail'
 import AddRecommendation from './AddRecommendation'
@@ -27,6 +27,16 @@ export default function HomePage() {
         setAllRecs(discoverRecs)
       } else {
         setAllRecs(recs)
+        // Backfill lat/lng for reviews missing coordinates (one-time fix)
+        const needsBackfill = recs.filter(r => r.restaurantPlaceId && r.restaurantLat == null)
+        if (needsBackfill.length > 0) {
+          const updated = await backfillRecCoords(needsBackfill)
+          if (updated > 0) {
+            // Re-fetch to get updated coords
+            const refreshed = await getFeedRecommendations(allIds)
+            setAllRecs(refreshed)
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to load recs:', err)

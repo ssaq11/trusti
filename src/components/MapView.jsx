@@ -155,25 +155,24 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
 
     // For "reviewed" and "bookmarked" filters, skip Google Places search
     if (activeFilter === 'reviewed') {
-      // Show all trusti-reviewed places (with map markers for those with lat/lng)
+      // Show trusti-reviewed places within visible map bounds
       const bounds = mapInstanceRef.current.getBounds()
       reviewsByPlace.forEach((recs, placeId) => {
         const rec = recs[0]
         const lat = rec.restaurantLat
         const lng = rec.restaurantLng
-        const hasCoords = lat != null && lng != null
-        const inBounds = hasCoords && (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng)))
-        // Include if in bounds OR if no coords (show in list even without map marker)
-        if (inBounds || !hasCoords) {
-          results.push({
-            placeId,
-            name: rec.restaurantName,
-            address: rec.restaurantAddress || '',
-            lat: hasCoords ? lat : null,
-            lng: hasCoords ? lng : null,
-            photoUrl: null,
-            rating: null,
-          })
+        if (lat != null && lng != null) {
+          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
+            results.push({
+              placeId,
+              name: rec.restaurantName,
+              address: rec.restaurantAddress || '',
+              lat,
+              lng,
+              photoUrl: null,
+              rating: null,
+            })
+          }
         }
       })
     } else if (activeFilter === 'bookmarked') {

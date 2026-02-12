@@ -165,6 +165,29 @@ export async function getBookmarks(userId) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
+// --- BACKFILL ---
+
+export async function backfillRecCoords(recs) {
+  // Dynamically import to avoid circular deps
+  const { getPlaceDetails } = await import('./places')
+  let updated = 0
+  for (const rec of recs) {
+    try {
+      const details = await getPlaceDetails(rec.restaurantPlaceId)
+      if (details?.lat != null && details?.lng != null) {
+        await updateDoc(doc(db, 'recommendations', rec.id), {
+          restaurantLat: details.lat,
+          restaurantLng: details.lng,
+        })
+        updated++
+      }
+    } catch (err) {
+      console.error('Backfill failed for', rec.id, err)
+    }
+  }
+  return updated
+}
+
 // --- TRUSTI 9 ---
 
 export async function getTrusti9(uid) {
