@@ -14,8 +14,8 @@ function buildReviewMarkerIcon(counts) {
   const colors = ['green', 'yellow', 'red']
   const active = colors.filter(c => counts[c] > 0)
   const total = active.reduce((sum, c) => sum + counts[c], 0)
-  const size = 28
-  const r = 11 // main radius
+  const size = 20
+  const r = 8 // main radius
   const cx = size / 2
   const cy = size / 2
 
@@ -25,7 +25,7 @@ function buildReviewMarkerIcon(counts) {
     // Single color — simple filled circle with white border
     const color = active[0] || 'green'
     svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${TRUSTI_COLORS[color]}" stroke="#fff" stroke-width="2.5"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="${TRUSTI_COLORS[color]}" stroke="#fff" stroke-width="2"/>
     </svg>`
   } else {
     // Check if there's a dominant color
@@ -37,8 +37,8 @@ function buildReviewMarkerIcon(counts) {
       const dominant = sorted[0]
       const secondaries = sorted.slice(1)
       // Ring: split evenly among secondary colors
-      const ringWidth = 3
-      const ringR = r + 1
+      const ringWidth = 2.5
+      const ringR = r + 0.5
       let ringParts = ''
       if (secondaries.length === 1) {
         ringParts = `<circle cx="${cx}" cy="${cy}" r="${ringR}" fill="none" stroke="${TRUSTI_COLORS[secondaries[0]]}" stroke-width="${ringWidth}"/>`
@@ -51,7 +51,7 @@ function buildReviewMarkerIcon(counts) {
       }
       svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
         ${ringParts}
-        <circle cx="${cx}" cy="${cy}" r="${r - 1}" fill="${TRUSTI_COLORS[dominant]}" stroke="#fff" stroke-width="1.5"/>
+        <circle cx="${cx}" cy="${cy}" r="${r - 0.5}" fill="${TRUSTI_COLORS[dominant]}" stroke="#fff" stroke-width="1.5"/>
       </svg>`
     } else {
       // Even split — pie chart segments
@@ -71,7 +71,7 @@ function buildReviewMarkerIcon(counts) {
       })
       svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
         ${paths}
-        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="2.5"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="2"/>
       </svg>`
     }
   }
@@ -111,6 +111,7 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
   const userMarkerRef = useRef(null)
   const searchKeywordRef = useRef(searchKeyword)
   const filterRef = useRef(filter)
+  const searchAtLocationRef = useRef(null)
   const idleTimerRef = useRef(null)
   const skipNextIdleRef = useRef(false)
   const [places, setPlaces] = useState([])
@@ -333,6 +334,11 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
     setLoading(false)
   }, [trustiRecs, bookmarks, onPlaceSelect])
 
+  // Keep ref in sync so idle listener always uses latest version
+  useEffect(() => {
+    searchAtLocationRef.current = searchAtLocation
+  }, [searchAtLocation])
+
   // Request location and move map there
   async function goToMyLocation() {
     if (!mapInstanceRef.current) return
@@ -463,8 +469,8 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
         if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
         idleTimerRef.current = setTimeout(() => {
           const c = map.getCenter()
-          // Re-search with the active keyword (or empty for browse mode)
-          searchAtLocation({ lat: c.lat(), lng: c.lng() }, searchKeywordRef.current || '')
+          // Use ref to always get the latest searchAtLocation (avoids stale closure)
+          searchAtLocationRef.current?.({ lat: c.lat(), lng: c.lng() }, searchKeywordRef.current || '')
         }, 600)
       })
 
