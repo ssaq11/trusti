@@ -221,20 +221,12 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
           }
         })
 
-        // Pan to nearest keyword result so user can see it
-        if (keywordResults.length > 0) {
-          const nearest = keywordResults.reduce((best, r) => {
-            if (r.lat == null || r.lng == null) return best
-            const dist = Math.pow(r.lat - center.lat, 2) + Math.pow(r.lng - center.lng, 2)
-            return (!best || dist < best.dist) ? { place: r, dist } : best
-          }, null)
-          if (nearest) {
-            skipNextIdleRef.current = true
-            mapInstanceRef.current.panTo({ lat: nearest.place.lat, lng: nearest.place.lng })
-            if (mapInstanceRef.current.getZoom() < 14) {
-              mapInstanceRef.current.setZoom(15)
-            }
-          }
+        // Pan to first keyword result (most relevant match)
+        const firstWithCoords = keywordResults.find(r => r.lat != null && r.lng != null)
+        if (firstWithCoords) {
+          skipNextIdleRef.current = true
+          mapInstanceRef.current.setCenter({ lat: firstWithCoords.lat, lng: firstWithCoords.lng })
+          mapInstanceRef.current.setZoom(15)
         }
       } else {
         results = await searchNearby(mapInstanceRef.current, center, '')
