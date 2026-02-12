@@ -104,7 +104,7 @@ async function geocodeLocation(query) {
   })
 }
 
-export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
+export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersRef = useRef([])
@@ -197,35 +197,54 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
       })
     } else {
       // "all" filter — use Google Places search
-      results = await searchNearby(mapInstanceRef.current, center, keyword || '')
+      // For keyword searches, also fetch nearby places in parallel for gray dots
+      if (keyword) {
+        const [keywordResults, nearbyResults] = await Promise.all([
+          searchNearby(mapInstanceRef.current, center, keyword),
+          searchNearby(mapInstanceRef.current, center, ''),
+        ])
 
-      // For keyword searches: show only results within visible bounds.
-      // If none are in view, pan/zoom the map to show the nearest ones.
-      if (keyword && results.length > 0) {
-        const bounds = mapInstanceRef.current.getBounds()
-        if (bounds) {
-          const inView = results.filter(r =>
-            r.lat != null && r.lng != null &&
-            bounds.contains(new window.google.maps.LatLng(r.lat, r.lng))
-          )
-          if (inView.length > 0) {
-            results = inView
-          } else {
-            const fitBounds = new window.google.maps.LatLngBounds()
-            results.forEach(r => {
-              if (r.lat != null && r.lng != null) fitBounds.extend({ lat: r.lat, lng: r.lng })
-            })
-            skipNextIdleRef.current = true
-            mapInstanceRef.current.fitBounds(fitBounds, 40)
-            const listener = mapInstanceRef.current.addListener('idle', () => {
-              listener.remove()
-              if (mapInstanceRef.current.getZoom() > 16) {
-                skipNextIdleRef.current = true
-                mapInstanceRef.current.setZoom(16)
-              }
-            })
+        // Mark keyword results
+        const keywordPlaceIds = new Set(keywordResults.map(r => r.placeId))
+        keywordResults.forEach(r => { r._keywordMatch = true })
+
+        // Start with keyword results
+        results = keywordResults
+
+        // Add nearby places that aren't already in keyword results
+        nearbyResults.forEach(r => {
+          if (!keywordPlaceIds.has(r.placeId)) {
+            results.push(r)
+          }
+        })
+
+        // Pan/zoom to show keyword results if none are in current view
+        if (keywordResults.length > 0) {
+          const bounds = mapInstanceRef.current.getBounds()
+          if (bounds) {
+            const inView = keywordResults.filter(r =>
+              r.lat != null && r.lng != null &&
+              bounds.contains(new window.google.maps.LatLng(r.lat, r.lng))
+            )
+            if (inView.length === 0) {
+              const fitBounds = new window.google.maps.LatLngBounds()
+              keywordResults.forEach(r => {
+                if (r.lat != null && r.lng != null) fitBounds.extend({ lat: r.lat, lng: r.lng })
+              })
+              skipNextIdleRef.current = true
+              mapInstanceRef.current.fitBounds(fitBounds, 40)
+              const listener = mapInstanceRef.current.addListener('idle', () => {
+                listener.remove()
+                if (mapInstanceRef.current.getZoom() > 16) {
+                  skipNextIdleRef.current = true
+                  mapInstanceRef.current.setZoom(16)
+                }
+              })
+            }
           }
         }
+      } else {
+        results = await searchNearby(mapInstanceRef.current, center, '')
       }
 
       // Also add trusti-reviewed places not already in Google results
@@ -249,6 +268,18 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
             })
           }
         }
+      })
+    }
+
+    // Sort: keyword matches first, then reviewed places, then rest
+    if (keyword && activeFilter === 'all') {
+      results.sort((a, b) => {
+        const aKey = a._keywordMatch ? 1 : 0
+        const bKey = b._keywordMatch ? 1 : 0
+        if (aKey !== bKey) return bKey - aKey
+        const aRev = reviewsByPlace.has(a.placeId) ? 1 : 0
+        const bRev = reviewsByPlace.has(b.placeId) ? 1 : 0
+        return bRev - aRev
       })
     }
 
@@ -293,7 +324,7 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
           scale: 1.2,
           anchor: new window.google.maps.Point(12, 12),
         }
-      } else if (keyword) {
+      } else if (place._keywordMatch) {
         icon = {
           path: 'M12 0C7.58 0 4 3.58 4 8c0 5.25 8 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z',
           fillColor: '#16a34a',
@@ -376,8 +407,9 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
         })
       }
 
-      const keyword = searchKeywordRef.current
-      await searchAtLocation(loc, isZipCode(keyword) ? '' : keyword)
+      // Clear search and go to browse mode at user's location
+      onClearSearch?.()
+      await searchAtLocation(loc, '')
     } catch (err) {
       if (err.code === 1) {
         alert('Location access is blocked. Please tap the lock icon in your browser\'s address bar and allow location access, then try again.')
