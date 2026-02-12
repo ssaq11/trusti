@@ -64,11 +64,13 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
     setRestaurantLat(result.lat || null)
     setRestaurantLng(result.lng || null)
 
-    // Fetch full details for zip code
+    // Fetch full details for zip code and lat/lng
     const details = await getPlaceDetails(result.placeId)
     if (details) {
       setRestaurantAddress(details.address)
       setZipCode(details.zipCode)
+      if (details.lat != null) setRestaurantLat(details.lat)
+      if (details.lng != null) setRestaurantLng(details.lng)
     }
 
     setStep('rate')

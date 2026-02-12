@@ -155,24 +155,25 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
 
     // For "reviewed" and "bookmarked" filters, skip Google Places search
     if (activeFilter === 'reviewed') {
-      // Show only trusti-reviewed places (those with lat/lng)
+      // Show all trusti-reviewed places (with map markers for those with lat/lng)
       const bounds = mapInstanceRef.current.getBounds()
       reviewsByPlace.forEach((recs, placeId) => {
         const rec = recs[0]
         const lat = rec.restaurantLat
         const lng = rec.restaurantLng
-        if (lat != null && lng != null) {
-          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
-            results.push({
-              placeId,
-              name: rec.restaurantName,
-              address: rec.restaurantAddress || '',
-              lat,
-              lng,
-              photoUrl: null,
-              rating: null,
-            })
-          }
+        const hasCoords = lat != null && lng != null
+        const inBounds = hasCoords && (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng)))
+        // Include if in bounds OR if no coords (show in list even without map marker)
+        if (inBounds || !hasCoords) {
+          results.push({
+            placeId,
+            name: rec.restaurantName,
+            address: rec.restaurantAddress || '',
+            lat: hasCoords ? lat : null,
+            lng: hasCoords ? lng : null,
+            photoUrl: null,
+            rating: null,
+          })
         }
       })
     } else if (activeFilter === 'bookmarked') {
@@ -271,6 +272,9 @@ export default function MapView({ onPlaceSelect, searchKeyword, trustiRecs = [],
     markersRef.current = []
 
     results.forEach(place => {
+      // Skip marker for places without coordinates (still shown in list)
+      if (place.lat == null || place.lng == null) return
+
       const placeReviews = reviewsByPlace.get(place.placeId) || []
       const hasReviews = placeReviews.length > 0
       const isBookmarked = bookmarkedSet.has(place.placeId)
