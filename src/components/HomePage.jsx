@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Search } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords } from '../services/firestore'
+import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords } from '../services/firestore'
 import MapView from './MapView'
 import PlaceDetail from './PlaceDetail'
 import AddRecommendation from './AddRecommendation'
@@ -47,6 +47,15 @@ export default function HomePage() {
     try {
       const bmarks = await getBookmarks(user.uid)
       setAllBookmarks(bmarks)
+      // Backfill lat/lng for bookmarks missing coordinates (one-time fix)
+      const needsBackfill = bmarks.filter(b => b.placeId && b.placeLat == null)
+      if (needsBackfill.length > 0) {
+        const updated = await backfillBookmarkCoords(needsBackfill)
+        if (updated > 0) {
+          const refreshed = await getBookmarks(user.uid)
+          setAllBookmarks(refreshed)
+        }
+      }
     } catch (err) {
       console.error('Failed to load bookmarks:', err)
     }
@@ -69,6 +78,10 @@ export default function HomePage() {
   function handleSearch(e) {
     e.preventDefault()
     const keyword = searchInput.trim()
+    // Switch to "All" filter when searching so results aren't limited
+    if (keyword && filter !== 'all') {
+      setFilter('all')
+    }
     // Force re-trigger even if keyword is the same by clearing first
     if (keyword === searchKeyword) {
       setSearchKeyword('')

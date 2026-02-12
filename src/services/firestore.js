@@ -188,6 +188,26 @@ export async function backfillRecCoords(recs) {
   return updated
 }
 
+export async function backfillBookmarkCoords(bookmarks) {
+  const { getPlaceDetails } = await import('./places')
+  let updated = 0
+  for (const bm of bookmarks) {
+    try {
+      const details = await getPlaceDetails(bm.placeId)
+      if (details?.lat != null && details?.lng != null) {
+        await updateDoc(doc(db, 'bookmarks', bm.id), {
+          placeLat: details.lat,
+          placeLng: details.lng,
+        })
+        updated++
+      }
+    } catch (err) {
+      console.error('Bookmark backfill failed for', bm.id, err)
+    }
+  }
+  return updated
+}
+
 // --- TRUSTI 9 ---
 
 export async function getTrusti9(uid) {
