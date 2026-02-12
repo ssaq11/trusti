@@ -114,6 +114,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
   const searchAtLocationRef = useRef(null)
   const idleTimerRef = useRef(null)
   const skipNextIdleRef = useRef(false)
+  const searchGenRef = useRef(0)
   const [places, setPlaces] = useState([])
   const [userLocation, setUserLocation] = useState(null)
   const [mapReady, setMapReady] = useState(false)
@@ -134,6 +135,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     if (!mapInstanceRef.current) return
 
     const activeFilter = filterRef.current
+    const gen = ++searchGenRef.current
 
     setLoading(true)
 
@@ -203,6 +205,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
           searchNearby(mapInstanceRef.current, center, keyword),
           searchNearby(mapInstanceRef.current, center, ''),
         ])
+        if (gen !== searchGenRef.current) return // cancelled by newer search
 
         // Mark keyword results
         const keywordPlaceIds = new Set(keywordResults.map(r => r.placeId))
@@ -235,6 +238,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         }
       } else {
         results = await searchNearby(mapInstanceRef.current, center, '')
+        if (gen !== searchGenRef.current) return // cancelled by newer search
       }
 
       // Also add trusti-reviewed and bookmarked places not already in results
@@ -550,7 +554,6 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         }
       }
 
-      skipNextIdleRef.current = true
       const c = mapInstanceRef.current.getCenter()
       await searchAtLocation({ lat: c.lat(), lng: c.lng() }, keyword)
     }
