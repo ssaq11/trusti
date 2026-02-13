@@ -534,36 +534,55 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     if (!mapReady || !mapInstanceRef.current) return
 
     async function doSearch() {
-      let keyword = searchKeyword || ''
+      const keyword = searchKeywordRef.current || ''
+      const center = mapInstanceRef.current.getCenter()
+      const mapCenter = { lat: center.lat(), lng: center.lng() }
 
-      if (keyword && isZipCode(keyword)) {
+      // If it's a keyword search, we do a two-step process:
+      // 1. Find the primary result and pan to it.
+      // 2. Run the full searchAtLocation at the new location to get context.
+      if (keyword && centeredKeywordRef.current !== keyword) {
+        centeredKeywordRef.current = keyword
         setLoading(true)
-        const location = await geocodeLocation(keyword)
+
+        // Step 1: Find the primary result
+        const keywordResults = await searchNearby(mapInstanceRef.current, mapCenter, keyword)
+        const firstResult = keywordResults.find(r => r.lat != null && r.lng != null)
+
+        if (firstResult) {
+          const newCenter = { lat: firstResult.lat, lng: firstResult.lng }
+          // Pan map to the result
+          skipNextIdleRef.current = true
+          mapInstanceRef.current.setCenter(newCenter)
+          mapInstanceRef.current.setZoom(15)
+
+          // Step 2: Run the full contextual search at the new location
+          await searchAtLocationRef.current?.(newCenter, keyword)
+        } else {
+          // No results for keyword, just run a normal search at the current spot
+          await searchAtLocationRef.current?.(mapCenter, keyword)
+        }
+      } else {
+        // Normal search (no keyword, or keyword has already been centered)
+        await searchAtLocationRef.current?.(mapCenter, keyword)
+      }
+    }
+
+    // Special case for zip code search
+    const keyword = searchKeyword || ''
+    if (keyword && isZipCode(keyword)) {
+      setLoading(true)
+      geocodeLocation(keyword).then(location => {
         if (location) {
           skipNextIdleRef.current = true
           mapInstanceRef.current.panTo(location)
           mapInstanceRef.current.setZoom(15)
-          await searchAtLocationRef.current?.(location, '')
-          return
+          searchAtLocationRef.current?.(location, '')
         }
-      }
-
-      const c = mapInstanceRef.current.getCenter()
-      const results = await searchAtLocationRef.current?.({ lat: c.lat(), lng: c.lng() }, keyword)
-
-      // Center map on first keyword match — only once per unique keyword
-      if (keyword && centeredKeywordRef.current !== keyword && results?.length) {
-        centeredKeywordRef.current = keyword
-        const first = results.find(r => r._keywordMatch && r.lat != null && r.lng != null)
-        if (first) {
-          skipNextIdleRef.current = true
-          mapInstanceRef.current.setCenter({ lat: first.lat, lng: first.lng })
-          mapInstanceRef.current.setZoom(15)
-        }
-      }
+      })
+    } else {
+      doSearch()
     }
-
-    doSearch()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, searchKeyword, filter])
 
