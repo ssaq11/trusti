@@ -115,6 +115,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
   const idleTimerRef = useRef(null)
   const skipNextIdleRef = useRef(false)
   const searchGenRef = useRef(0)
+  const centeredKeywordRef = useRef(null) // tracks which keyword we've already centered on
   const [places, setPlaces] = useState([])
   const [userLocation, setUserLocation] = useState(null)
   const [mapReady, setMapReady] = useState(false)
@@ -207,9 +208,15 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         ])
         if (gen !== searchGenRef.current) return // cancelled by newer search
 
-        // Mark keyword results
+        // Mark keyword results whose name actually matches the search term
         const keywordPlaceIds = new Set(keywordResults.map(r => r.placeId))
-        keywordResults.forEach(r => { r._keywordMatch = true })
+        const keywordWords = keyword.toLowerCase().split(/\s+/).filter(w => w.length > 1)
+        keywordResults.forEach(r => {
+          const nameLower = r.name.toLowerCase()
+          if (keywordWords.some(w => nameLower.includes(w))) {
+            r._keywordMatch = true
+          }
+        })
 
         // Start with keyword results
         results = keywordResults
@@ -221,13 +228,6 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
           }
         })
 
-        // Pan to first keyword result (most relevant match)
-        const firstWithCoords = keywordResults.find(r => r.lat != null && r.lng != null)
-        if (firstWithCoords) {
-          skipNextIdleRef.current = true
-          mapInstanceRef.current.setCenter({ lat: firstWithCoords.lat, lng: firstWithCoords.lng })
-          mapInstanceRef.current.setZoom(15)
-        }
       } else {
         results = await searchNearby(mapInstanceRef.current, center, '')
         if (gen !== searchGenRef.current) return // cancelled by newer search
@@ -371,6 +371,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     })
 
     setLoading(false)
+    return results
   }, [trustiRecs, bookmarks, onPlaceSelect])
 
   // Keep ref in sync so idle listener always uses latest version
@@ -413,6 +414,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
       }
 
       // Clear search and go to browse mode at user's location
+      centeredKeywordRef.current = null
       onClearSearch?.()
       await searchAtLocation(loc, '')
     } catch (err) {
@@ -541,17 +543,29 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
           skipNextIdleRef.current = true
           mapInstanceRef.current.panTo(location)
           mapInstanceRef.current.setZoom(15)
-          await searchAtLocation(location, '')
+          await searchAtLocationRef.current?.(location, '')
           return
         }
       }
 
       const c = mapInstanceRef.current.getCenter()
-      await searchAtLocation({ lat: c.lat(), lng: c.lng() }, keyword)
+      const results = await searchAtLocationRef.current?.({ lat: c.lat(), lng: c.lng() }, keyword)
+
+      // Center map on first keyword match — only once per unique keyword
+      if (keyword && centeredKeywordRef.current !== keyword && results?.length) {
+        centeredKeywordRef.current = keyword
+        const first = results.find(r => r._keywordMatch && r.lat != null && r.lng != null)
+        if (first) {
+          skipNextIdleRef.current = true
+          mapInstanceRef.current.setCenter({ lat: first.lat, lng: first.lng })
+          mapInstanceRef.current.setZoom(15)
+        }
+      }
     }
 
     doSearch()
-  }, [mapReady, searchKeyword, filter, searchAtLocation])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, searchKeyword, filter])
 
   return (
     <div className="flex flex-col h-full">

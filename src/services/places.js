@@ -127,7 +127,10 @@ export async function searchNearby(mapInstance, location, keyword = '') {
   const loaded = await waitForGoogle()
   if (!loaded || !mapInstance) return []
 
-  const service = new window.google.maps.places.PlacesService(mapInstance)
+  // Use a detached div instead of the map instance to prevent
+  // PlacesService from auto-panning/zooming the map to show results
+  const div = document.createElement('div')
+  const service = new window.google.maps.places.PlacesService(div)
   const latLng = new window.google.maps.LatLng(location.lat, location.lng)
   const bounds = mapInstance.getBounds?.() || null
 
