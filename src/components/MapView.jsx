@@ -6,6 +6,21 @@ import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 const DEFAULT_CENTER = { lat: 30.2672, lng: -97.7431 } // Austin, TX fallback
 const TRUSTI_COLORS = { red: '#ef4444', yellow: '#eab308', green: '#22c55e' }
 
+const MAP_STYLE = [
+  { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
+  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
+  { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] },
+  { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#515c6d" }] },
+  { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38414e" }] },
+  { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#212a37" }] },
+  { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#9ca5b3" }] },
+  { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#746855" }] },
+  { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1f2835" }] },
+  { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{ "color": "#f3d19c" }] },
+  { "featureType": "poi", "elementType": "labels", "stylers": [{ "visibility": "off" }] }
+]
+
 // Build an SVG marker for review counts
 // - Single dominant color: filled circle + thin ring in secondary color
 // - Even 2-way split: half-and-half circle
@@ -473,10 +488,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        styles: [
-          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-          { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-        ],
+        styles: MAP_STYLE,
       })
 
       mapInstanceRef.current = map
@@ -592,10 +604,10 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
       <div className="relative shrink-0">
         <div
           ref={mapRef}
-          className="w-full h-64 sm:h-72 rounded-xl overflow-hidden bg-gray-200"
+          className="w-full h-64 sm:h-72 rounded-xl overflow-hidden bg-slate-800"
         >
           {!isGoogleMapsLoaded() && (
-            <div className="flex items-center justify-center h-full text-gray-400 text-xs">
+            <div className="flex items-center justify-center h-full text-slate-400 text-xs">
               Loading map...
             </div>
           )}
@@ -606,20 +618,20 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
           <button
             onClick={goToMyLocation}
             disabled={locating}
-            className="absolute bottom-3 left-3 bg-white rounded-lg shadow-md p-2 hover:bg-gray-50 active:bg-gray-100 transition-colors disabled:opacity-50"
+            className="absolute bottom-3 left-3 bg-slate-700 rounded-lg shadow-md p-2 hover:bg-slate-600 active:bg-slate-500 transition-colors disabled:opacity-50"
             title="Go to my location"
           >
             <Navigation
               size={18}
-              className={`text-green-600 ${locating ? 'animate-pulse' : ''}`}
+              className={`text-green-500 ${locating ? 'animate-pulse' : ''}`}
               fill={userLocation ? '#16a34a' : 'none'}
             />
           </button>
         )}
 
         {loading && (
-          <div className="absolute bottom-3 right-3 bg-white rounded-lg shadow-md p-2">
-            <RefreshCw size={16} className="text-green-600 animate-spin" />
+          <div className="absolute bottom-3 right-3 bg-slate-700 rounded-lg shadow-md p-2">
+            <RefreshCw size={16} className="text-green-500 animate-spin" />
           </div>
         )}
       </div>
@@ -629,11 +641,11 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         {loading && places.length === 0 && (
           <div className="space-y-2">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-lg p-3 animate-pulse flex gap-3">
-                <div className="w-12 h-12 rounded-lg bg-gray-200 shrink-0" />
+              <div key={i} className="bg-slate-800 rounded-lg p-3 animate-pulse flex gap-3">
+                <div className="w-12 h-12 rounded-lg bg-slate-700 shrink-0" />
                 <div className="flex-1 space-y-1.5">
-                  <div className="h-3.5 bg-gray-200 rounded w-3/4" />
-                  <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  <div className="h-3.5 bg-slate-700 rounded w-3/4" />
+                  <div className="h-3 bg-slate-600 rounded w-1/2" />
                 </div>
               </div>
             ))}
@@ -663,7 +675,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
               return (
                 <div
                   key={place.placeId}
-                  className="flex items-center bg-white rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors"
                 >
                   {/* Tapping the main area pans the map to this place */}
                   <button
@@ -678,21 +690,21 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
                     }}
                     className="flex-1 flex items-center gap-3 p-3 text-left min-w-0"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0">
+                    <div className="w-12 h-12 rounded-lg bg-slate-700 overflow-hidden shrink-0">
                       {place.photoUrl ? (
                         <img src={place.photoUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-lg">
+                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-lg">
                           🍽
                         </div>
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{place.name}</p>
-                      <p className="text-xs text-gray-400 truncate">{place.address}</p>
+                      <p className="text-sm font-medium text-white truncate">{place.name}</p>
+                      <p className="text-xs text-slate-400 truncate">{place.address}</p>
                       {place.rating && (
-                        <p className="text-[10px] text-gray-400 mt-0.5">⭐ {place.rating}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">⭐ {place.rating}</p>
                       )}
                     </div>
 
@@ -731,7 +743,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
                       lat: place.lat,
                       lng: place.lng,
                     })}
-                    className="px-2 py-3 shrink-0 text-gray-300 hover:text-green-600 transition-colors self-stretch flex items-center"
+                    className="px-2 py-3 shrink-0 text-slate-500 hover:text-green-500 transition-colors self-stretch flex items-center"
                     title="View details"
                   >
                     <ChevronRight size={18} />
