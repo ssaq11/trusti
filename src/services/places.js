@@ -177,7 +177,7 @@ export async function searchNearby(mapInstance, location, keyword = '') {
           resolve([])
           return
         }
-        resolve(filterToBounds(results.map(mapResult)))
+        resolve(results.map(mapResult))
       })
     })
   }
