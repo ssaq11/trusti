@@ -52,16 +52,16 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
   return (
     <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center" onClick={onClose}>
       <div
-        className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[85dvh] mb-16 sm:mb-0 overflow-y-auto"
+        className="bg-slate-900 w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[85dvh] mb-16 sm:mb-0 overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="p-5 pb-3">
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-gray-900">{place.name}</h2>
+              <h2 className="text-lg font-bold text-white">{place.name}</h2>
               {place.address && (
-                <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
                   <MapPin size={12} />
                   {place.address}
                 </p>
@@ -88,7 +88,7 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
 
           {/* Stoplight summary */}
           {totalReviews > 0 && (
-            <div className="flex items-center gap-4 bg-gray-50 rounded-xl p-3 mb-3">
+            <div className="flex items-center gap-4 bg-slate-800 rounded-xl p-3 mb-3">
               <div className="flex items-center gap-2">
                 {['green', 'yellow', 'red'].map(color => {
                   if (counts[color] === 0) return null
@@ -103,7 +103,7 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
                   )
                 })}
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-slate-400">
                 {totalVoters} {totalVoters === 1 ? 'person' : 'people'} from your network
               </p>
             </div>
@@ -124,7 +124,7 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
               className={`px-4 py-2.5 font-medium rounded-lg transition-colors text-sm flex items-center gap-2 ${
                 bookmarked
                   ? 'bg-purple-100 text-purple-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-600'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
               }`}
             >
               <Bookmark size={16} fill={bookmarked ? 'currentColor' : 'none'} />
@@ -135,8 +135,8 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
 
         {/* Reviews list */}
         {totalReviews > 0 && (
-          <div className="border-t border-gray-100">
-            <p className="px-5 pt-3 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <div className="border-t border-slate-700">
+            <p className="px-5 pt-3 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">
               Reviews
             </p>
             <div className="px-5 pb-5 space-y-3">
@@ -150,7 +150,7 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
 
                 if (isEditing) {
                   return (
-                    <div key={rec.id} className="bg-gray-50 rounded-lg p-3 space-y-3">
+                    <div key={rec.id} className="bg-slate-800 rounded-lg p-3 space-y-3">
                       <div className="flex gap-3 justify-center">
                         {['red', 'yellow', 'green'].map(color => {
                           const cfg = RATING_CONFIG[color]
@@ -160,7 +160,7 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
                               type="button"
                               onClick={() => setEditRating(color)}
                               className={`w-8 h-8 rounded-full ${cfg.bg} transition-all ${
-                                editRating === color ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'opacity-50'
+                                editRating === color ? 'ring-2 ring-offset-2 ring-slate-600 scale-110' : 'opacity-50'
                               }`}
                             />
                           )
@@ -170,12 +170,12 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
                         value={editComment}
                         onChange={(e) => setEditComment(e.target.value)}
                         rows={2}
-                        className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                        className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
                       />
                       <div className="flex gap-2 justify-end">
                         <button
                           onClick={() => setEditingId(null)}
-                          className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700"
+                          className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
                         >
                           Cancel
                         </button>
@@ -210,21 +210,21 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
                           className="flex items-center gap-1.5 group"
                           onClick={onClose}
                         >
-                          <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-medium text-gray-500 overflow-hidden">
+                          <div className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-medium text-slate-400 overflow-hidden">
                             {rec.userPhotoURL ? (
                               <img src={rec.userPhotoURL} alt="" className="w-full h-full object-cover" />
                             ) : (
                               rec.userName?.[0]?.toUpperCase()
                             )}
                           </div>
-                          <span className="text-xs font-medium text-gray-700 group-hover:text-green-600">
+                          <span className="text-xs font-medium text-slate-300 group-hover:text-green-500">
                             {rec.userName}
                           </span>
                         </Link>
                         <span className={`text-[10px] font-medium ${ratingConfig.textColor}`}>
                           {ratingConfig.label}
                         </span>
-                        {timeAgo && <span className="text-[10px] text-gray-300">{timeAgo}</span>}
+                        {timeAgo && <span className="text-[10px] text-slate-500">{timeAgo}</span>}
                         {isOwn && (
                           <div className="flex items-center gap-1 ml-auto">
                             <button
@@ -233,7 +233,7 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
                                 setEditComment(rec.comment || '')
                                 setEditRating(rec.rating)
                               }}
-                              className="p-1 text-gray-300 hover:text-green-600 transition-colors"
+                              className="p-1 text-slate-500 hover:text-green-500 transition-colors"
                               title="Edit"
                             >
                               <Pencil size={12} />
@@ -245,7 +245,7 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
                                   onReviewChanged?.()
                                 }
                               }}
-                              className="p-1 text-gray-300 hover:text-red-500 transition-colors"
+                              className="p-1 text-slate-500 hover:text-red-500 transition-colors"
                               title="Delete"
                             >
                               <Trash2 size={12} />
@@ -254,7 +254,7 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
                         )}
                       </div>
                       {rec.comment && (
-                        <p className="text-sm text-gray-600 mt-1 leading-relaxed">{rec.comment}</p>
+                        <p className="text-sm text-slate-300 mt-1 leading-relaxed">{rec.comment}</p>
                       )}
                     </div>
                   </div>
@@ -266,7 +266,7 @@ export default function PlaceDetail({ place, reviews, onClose, onAddReview, onBo
 
         {totalReviews === 0 && (
           <div className="px-5 pb-5 pt-2">
-            <p className="text-center text-gray-400 text-xs">
+            <p className="text-center text-slate-400 text-xs">
               No one in your network has reviewed this place yet. Be the first!
             </p>
           </div>

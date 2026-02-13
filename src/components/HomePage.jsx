@@ -136,7 +136,7 @@ export default function HomePage() {
         {/* Search bar */}
         <div className="relative mb-2">
           <form onSubmit={handleSearch} className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               ref={searchInputRef}
               type="text"
@@ -145,7 +145,7 @@ export default function HomePage() {
               onChange={(e) => setSearchInput(e.target.value)}
               onFocus={() => { if (recentSearches.length > 0 && !searchInput) setShowRecent(true) }}
               onBlur={() => setTimeout(() => setShowRecent(false), 150)}
-              className="w-full pl-9 pr-16 py-2.5 rounded-xl bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full pl-9 pr-16 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
             {searchInput && (
               <button
@@ -165,17 +165,17 @@ export default function HomePage() {
           </form>
           {/* Recent searches dropdown */}
           {showRecent && recentSearches.length > 0 && (
-            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+            <div className="absolute z-20 w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-lg overflow-hidden">
               {recentSearches.map(s => (
                 <button
                   key={s}
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => selectRecentSearch(s)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-slate-800 transition-colors"
                 >
-                  <Clock size={14} className="text-gray-300 shrink-0" />
-                  <span className="text-sm text-gray-700 truncate">{s}</span>
+                  <Clock size={14} className="text-slate-400 shrink-0" />
+                  <span className="text-sm text-white truncate">{s}</span>
                 </button>
               ))}
             </div>
@@ -195,7 +195,7 @@ export default function HomePage() {
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                 filter === tab.key
                   ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
               }`}
             >
               {tab.label}

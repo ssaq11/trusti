@@ -120,15 +120,15 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center" onClick={onClose}>
       <div
-        className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[85dvh] mb-16 sm:mb-0 flex flex-col"
+        className="bg-slate-900 w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[85dvh] mb-16 sm:mb-0 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header - always visible */}
         <div className="flex items-center justify-between px-5 pt-5 pb-2 shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-white">
             {step === 'search' ? 'Find Restaurant' : 'Add Recommendation'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
+          <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
             <X size={20} />
           </button>
         </div>
@@ -139,19 +139,19 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
           {step === 'search' && (
             <div>
               <div className="relative mb-3">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search restaurants near you..."
                   value={searchQuery}
                   onChange={(e) => handleSearchInput(e.target.value)}
                   autoFocus
-                  className="w-full pl-9 pr-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full pl-9 pr-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
 
               {searching && (
-                <p className="text-center text-gray-400 text-xs py-4">Searching...</p>
+                <p className="text-center text-slate-400 text-xs py-4">Searching...</p>
               )}
 
               {searchResults.length > 0 && (
@@ -161,12 +161,12 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
                       key={r.placeId}
                       type="button"
                       onClick={() => selectPlace(r)}
-                      className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                      className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-slate-800 transition-colors text-left"
                     >
                       <MapPin size={16} className="text-green-500 mt-0.5 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{r.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{r.address}</p>
+                        <p className="text-sm font-medium text-white">{r.name}</p>
+                        <p className="text-xs text-slate-400 truncate">{r.address}</p>
                       </div>
                     </button>
                   ))}
@@ -174,14 +174,14 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
               )}
 
               {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
-                <p className="text-center text-gray-400 text-sm py-6">No restaurants found</p>
+                <p className="text-center text-slate-400 text-sm py-6">No restaurants found</p>
               )}
 
-              <div className="border-t border-gray-100 pt-3 mt-3">
+              <div className="border-t border-slate-700 pt-3 mt-3">
                 <button
                   type="button"
                   onClick={useManualEntry}
-                  className="w-full py-2.5 text-sm text-green-600 font-medium hover:text-green-700"
+                  className="w-full py-2.5 text-sm text-green-500 font-medium hover:text-green-600"
                 >
                   Enter restaurant manually instead
                 </button>
@@ -198,21 +198,21 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
                 value={restaurantName}
                 onChange={(e) => setRestaurantName(e.target.value)}
                 autoFocus
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               <input
                 type="text"
                 placeholder="Address (optional)"
                 value={restaurantAddress}
                 onChange={(e) => setRestaurantAddress(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               <input
                 type="text"
                 placeholder="Zip code (optional)"
                 value={zipCode}
                 onChange={(e) => setZipCode(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
 
               <RatingPicker rating={rating} setRating={setRating} />
@@ -231,14 +231,14 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
           {/* Step 2: Rate the selected restaurant */}
           {step === 'rate' && (
             <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-3 flex items-start gap-3">
+              <div className="bg-slate-800 rounded-lg p-3 flex items-start gap-3">
                 <MapPin size={16} className="text-green-500 mt-0.5 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{restaurantName}</p>
-                  {restaurantAddress && <p className="text-xs text-gray-400 truncate">{restaurantAddress}</p>}
+                  <p className="text-sm font-semibold text-white">{restaurantName}</p>
+                  {restaurantAddress && <p className="text-xs text-slate-400 truncate">{restaurantAddress}</p>}
                 </div>
                 {!prefill && (
-                  <button type="button" onClick={() => setStep('search')} className="text-xs text-green-600 shrink-0">
+                  <button type="button" onClick={() => setStep('search')} className="text-xs text-green-500 shrink-0">
                     Change
                   </button>
                 )}

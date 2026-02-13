@@ -11,7 +11,7 @@ export default function BottomNav() {
   const location = useLocation()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 z-50">
       <div className="max-w-md mx-auto flex justify-around items-center h-14">
         {tabs.map(({ path, icon: Icon, label }) => {
           const active = location.pathname === path
@@ -20,7 +20,7 @@ export default function BottomNav() {
               key={path}
               to={path}
               className={`flex flex-col items-center gap-0.5 px-4 py-1 transition-colors ${
-                active ? 'text-green-600' : 'text-gray-400'
+                active ? 'text-green-600' : 'text-slate-400'
               }`}
             >
               <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />

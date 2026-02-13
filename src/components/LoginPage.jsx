@@ -42,20 +42,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-green-600 mb-2">trusti</h1>
-          <p className="text-gray-500 text-sm">Restaurant recs from people you trust</p>
+          <p className="text-slate-400 text-sm">Restaurant recs from people you trust</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
+        <div className="bg-slate-900 rounded-2xl shadow-sm p-6">
+          <div className="flex mb-6 bg-slate-800 rounded-lg p-1">
             <button
               type="button"
               onClick={() => { setIsSignup(false); setError('') }}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
-                !isSignup ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                !isSignup ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400'
               }`}
             >
               Log In
@@ -64,7 +64,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => { setIsSignup(true); setError('') }}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
-                isSignup ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                isSignup ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400'
               }`}
             >
               Sign Up
@@ -78,7 +78,7 @@ export default function LoginPage() {
                 placeholder="Display name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             )}
             <input
@@ -87,7 +87,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
             <input
               type="password"
@@ -96,7 +96,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
 
             {error && (
@@ -114,10 +114,10 @@ export default function LoginPage() {
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+              <div className="w-full border-t border-slate-700" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="px-2 bg-white text-gray-400">or</span>
+              <span className="px-2 bg-slate-900 text-slate-400">or</span>
             </div>
           </div>
 
