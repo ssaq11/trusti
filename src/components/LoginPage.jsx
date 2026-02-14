@@ -44,8 +44,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-green-600 mb-2">trusti</h1>
+        <div className="text-center mb-8 flex flex-col items-center">
+          <a href="/" className="flex items-baseline mb-3 no-underline" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 500, fontSize: "2.25rem" }}>
+            <span style={{color: "#4B8BBE"}}>trustı</span>
+            <span style={{color: "#2ECC71"}}>.</span>
+            <span style={{color: "#4B8BBE"}}>es</span>
+          </a>
           <p className="text-slate-400 text-sm">Restaurant recs from people you trust</p>
         </div>
 

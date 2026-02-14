@@ -41,10 +41,10 @@ export default function ProfilePage() {
       <div className="max-w-md mx-auto px-4 pt-4">
         <div className="animate-pulse space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gray-200" />
+            <div className="w-16 h-16 rounded-full bg-slate-700" />
             <div className="space-y-2 flex-1">
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
-              <div className="h-3 bg-gray-100 rounded w-3/4" />
+              <div className="h-4 bg-slate-700 rounded w-1/2" />
+              <div className="h-3 bg-slate-600 rounded w-3/4" />
             </div>
           </div>
         </div>
@@ -55,9 +55,9 @@ export default function ProfilePage() {
   return (
     <div className="max-w-md mx-auto px-4 pt-4">
       {/* Profile Header */}
-      <div className="bg-white rounded-2xl p-5 mb-4 shadow-sm">
+      <div className="bg-slate-800 rounded-2xl p-5 mb-4 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-xl font-bold text-gray-500 overflow-hidden shrink-0">
+          <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center text-xl font-bold text-slate-400 overflow-hidden shrink-0">
             {user.photoURL ? (
               <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -65,31 +65,31 @@ export default function ProfilePage() {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-gray-900 truncate">
+            <h2 className="text-lg font-bold text-white truncate">
               {user.displayName || user.email?.split('@')[0]}
             </h2>
-            <p className="text-xs text-gray-400 truncate">{user.email}</p>
+            <p className="text-xs text-slate-400 truncate">{user.email}</p>
           </div>
         </div>
 
-        <div className="flex gap-6 mt-4 pt-4 border-t border-gray-100">
+        <div className="flex gap-6 mt-4 pt-4 border-t border-slate-700">
           <div className="text-center">
-            <p className="text-lg font-bold text-gray-900">{recommendations.length}</p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider">Recs</p>
+            <p className="text-lg font-bold text-white">{recommendations.length}</p>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider">Recs</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-gray-900">{profile?.followersCount || 0}</p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider">Followers</p>
+            <p className="text-lg font-bold text-white">{profile?.followersCount || 0}</p>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider">Followers</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-gray-900">{profile?.followingCount || 0}</p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider">Following</p>
+            <p className="text-lg font-bold text-white">{profile?.followingCount || 0}</p>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider">Following</p>
           </div>
         </div>
 
         <button
           onClick={logout}
-          className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-sm text-gray-500 hover:text-red-500 border border-gray-200 rounded-lg hover:border-red-200 transition-colors"
+          className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-sm text-slate-400 hover:text-red-500 border border-slate-700 rounded-lg hover:border-red-800 transition-colors"
         >
           <LogOut size={16} />
           Log out
@@ -97,7 +97,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Recommendations */}
-      <h3 className="text-sm font-semibold text-gray-500 mb-3 px-1">Your Recommendations</h3>
+      <h3 className="text-sm font-semibold text-slate-400 mb-3 px-1">Your Recommendations</h3>
       {recommendations.length > 0 ? (
         recommendations.map(rec => (
           <RecommendationCard
@@ -109,7 +109,7 @@ export default function ProfilePage() {
         ))
       ) : (
         <div className="text-center py-12">
-          <p className="text-gray-400 text-sm">You haven't made any recommendations yet.</p>
+          <p className="text-slate-400 text-sm">You haven't made any recommendations yet.</p>
         </div>
       )}
     </div>

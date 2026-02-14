@@ -130,8 +130,12 @@ export default function HomePage() {
   return (
     <div className="max-w-md mx-auto h-[calc(100dvh-64px)] flex flex-col">
       {/* Header - fixed */}
-      <div className="px-4 pt-4 pb-2 shrink-0">
-        <h1 className="text-2xl font-bold text-green-600 mb-3">trusti</h1>
+      <div className="px-4 pt-3 pb-1 shrink-0">
+        <a href="/" className="flex items-baseline mb-3 no-underline" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 500, fontSize: "1.75rem", lineHeight: "0.8" }}>
+          <span style={{color: "#4B8BBE"}}>trustı</span>
+          <span style={{color: "#2ECC71"}}>.</span>
+          <span style={{color: "#4B8BBE"}}>es</span>
+        </a>
 
         {/* Search bar */}
         <div className="relative mb-2">

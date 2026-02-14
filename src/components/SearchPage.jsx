@@ -162,7 +162,7 @@ export default function SearchPage() {
   return (
     <div className="max-w-md mx-auto px-4 pt-4 pb-20">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-gray-900">People</h1>
+        <h1 className="text-xl font-bold text-white">People</h1>
         <button
           onClick={handleInvite}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
@@ -175,42 +175,42 @@ export default function SearchPage() {
       {/* Trusti 9 */}
       <div className="mb-5">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
             My Trusti 9
           </h2>
-          <span className="text-xs text-gray-400">{trusti9Friends.length}/9</span>
+          <span className="text-xs text-slate-400">{trusti9Friends.length}/9</span>
         </div>
 
         {loadingFriends ? (
           <div className="grid grid-cols-3 gap-2">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-xl p-3 animate-pulse flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-gray-200" />
-                <div className="h-3 bg-gray-200 rounded w-16" />
+              <div key={i} className="bg-slate-800 rounded-xl p-3 animate-pulse flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full bg-slate-700" />
+                <div className="h-3 bg-slate-700 rounded w-16" />
               </div>
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2">
             {trusti9Friends.map(friend => (
-              <div key={friend.id} className="bg-white rounded-xl p-3 flex flex-col items-center relative group">
+              <div key={friend.id} className="bg-slate-800 rounded-xl p-3 flex flex-col items-center relative group">
                 <button
                   onClick={() => handleDemoteFromTrusti9(friend.id)}
                   disabled={loadingActions[friend.id]}
-                  className="absolute top-1.5 right-1.5 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                  className="absolute top-1.5 right-1.5 p-1 text-slate-400 hover:text-red-500 hover:bg-slate-700 rounded-full transition-colors opacity-0 group-hover:opacity-100"
                   title="Move back to contacts"
                 >
                   <X size={12} />
                 </button>
                 <Link to={`/user/${friend.id}`} className="flex flex-col items-center gap-1.5">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-500 overflow-hidden ring-2 ring-green-500 ring-offset-1">
+                  <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium text-slate-400 overflow-hidden ring-2 ring-green-500 ring-offset-1 ring-offset-slate-800">
                     {friend.photoURL ? (
                       <img src={friend.photoURL} alt="" className="w-full h-full object-cover" />
                     ) : (
                       friend.displayName?.[0]?.toUpperCase()
                     )}
                   </div>
-                  <p className="text-xs font-medium text-gray-700 truncate max-w-[80px] text-center">
+                  <p className="text-xs font-medium text-white truncate max-w-[80px] text-center">
                     {friend.displayName?.split(' ')[0]}
                   </p>
                 </Link>
@@ -220,19 +220,19 @@ export default function SearchPage() {
             {emptySlots > 0 && (
               <button
                 onClick={() => setShowContacts(true)}
-                className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-3 flex flex-col items-center gap-1.5 hover:border-green-400 hover:bg-green-50 transition-colors"
+                className="bg-slate-800/50 border-2 border-dashed border-slate-700 rounded-xl p-3 flex flex-col items-center gap-1.5 hover:border-green-500 hover:bg-slate-700/50 transition-colors"
               >
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                  <Plus size={20} className="text-gray-400" />
+                <div className="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center">
+                  <Plus size={20} className="text-slate-400" />
                 </div>
-                <p className="text-xs text-gray-400">Add</p>
+                <p className="text-xs text-slate-400">Add</p>
               </button>
             )}
           </div>
         )}
 
         {!loadingFriends && trusti9Friends.length === 0 && (
-          <p className="text-xs text-gray-400 mt-2 text-center">
+          <p className="text-xs text-slate-400 mt-2 text-center">
             Add up to 9 trusted people whose restaurant reviews you'll see
           </p>
         )}
@@ -244,37 +244,37 @@ export default function SearchPage() {
           onClick={() => setShowContacts(!showContacts)}
           className="flex items-center justify-between w-full mb-2"
         >
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
             Contacts {contactFriends.length > 0 && `(${contactFriends.length})`}
           </h2>
-          {showContacts ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+          {showContacts ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
         </button>
 
         {showContacts && (
           <div className="space-y-1">
             {contactFriends.length === 0 && !loadingFriends && (
-              <p className="text-xs text-gray-400 text-center py-3">
+              <p className="text-xs text-slate-400 text-center py-3">
                 No contacts outside your Trusti 9. Search below to add people!
               </p>
             )}
             {contactFriends.map(friend => (
-              <div key={friend.id} className="flex items-center gap-3 p-2.5 bg-white rounded-xl">
+              <div key={friend.id} className="flex items-center gap-3 p-2.5 bg-slate-800 rounded-xl">
                 <Link to={`/user/${friend.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-500 overflow-hidden shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-400 overflow-hidden shrink-0">
                     {friend.photoURL ? (
                       <img src={friend.photoURL} alt="" className="w-full h-full object-cover" />
                     ) : (
                       friend.displayName?.[0]?.toUpperCase()
                     )}
                   </div>
-                  <p className="text-sm text-gray-700 truncate">{friend.displayName}</p>
+                  <p className="text-sm text-white truncate">{friend.displayName}</p>
                 </Link>
                 <div className="flex items-center gap-1 shrink-0">
                   {trusti9Ids.length < 9 && (
                     <button
                       onClick={() => handlePromoteToTrusti9(friend.id)}
                       disabled={loadingActions[friend.id]}
-                      className="px-2 py-1 text-xs font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      className="px-2 py-1 text-xs font-medium text-green-500 hover:bg-slate-700 rounded-lg transition-colors"
                     >
                       + Trusti
                     </button>
@@ -282,7 +282,7 @@ export default function SearchPage() {
                   <button
                     onClick={() => handleRemoveContact(friend.id)}
                     disabled={loadingActions[friend.id]}
-                    className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
                     title="Remove contact"
                   >
                     <X size={14} />
@@ -296,41 +296,41 @@ export default function SearchPage() {
 
       {/* Search to add contacts */}
       <div>
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Find People</h2>
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Find People</h2>
         <div className="relative mb-3">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Search by name..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
 
         <div className="space-y-1">
-          {searching && <p className="text-center text-gray-400 text-xs py-4">Searching...</p>}
+          {searching && <p className="text-center text-slate-400 text-xs py-4">Searching...</p>}
           {!searching && searched && filteredResults.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-4">No new people found</p>
+            <p className="text-center text-slate-400 text-sm py-4">No new people found</p>
           )}
           {filteredResults.map(u => (
-            <div key={u.uid} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white transition-colors">
+            <div key={u.uid} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-800 transition-colors">
               <Link to={`/user/${u.uid}`} className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-500 overflow-hidden shrink-0">
+                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-400 overflow-hidden shrink-0">
                   {u.photoURL ? (
                     <img src={u.photoURL} alt="" className="w-full h-full object-cover" />
                   ) : (
                     u.displayName?.[0]?.toUpperCase()
                   )}
                 </div>
-                <p className="text-sm text-gray-700 truncate">{u.displayName}</p>
+                <p className="text-sm text-white truncate">{u.displayName}</p>
               </Link>
               <button
                 onClick={() => followingMap[u.uid] ? handleRemoveContact(u.uid) : handleAddContact(u.uid)}
                 disabled={loadingActions[u.uid]}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
                   followingMap[u.uid]
-                    ? 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
+                    ? 'bg-slate-700 text-slate-400 hover:bg-red-900 hover:text-red-500'
                     : 'bg-green-600 text-white hover:bg-green-700'
                 }`}
               >
