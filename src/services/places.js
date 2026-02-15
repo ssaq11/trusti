@@ -177,7 +177,7 @@ export async function searchNearby(mapInstance, location, keyword = '') {
           resolve([])
           return
         }
-        resolve(results.map(mapResult))
+        resolve(results.map(mapResult).filter(isFoodOrDrink))
       })
     })
   }
@@ -199,9 +199,20 @@ export async function searchNearby(mapInstance, location, keyword = '') {
         resolve([])
         return
       }
-      resolve(filterToBounds(results.map(mapResult)))
+      resolve(filterToBounds(results.map(mapResult)).filter(isFoodOrDrink))
     })
   })
+}
+
+// Food & drink place types — everything else (gas stations, stores, etc.) is hidden
+const FOOD_DRINK_TYPES = new Set([
+  'restaurant', 'cafe', 'bar', 'bakery', 'meal_delivery', 'meal_takeaway',
+  'food', 'night_club',
+])
+
+export function isFoodOrDrink(place) {
+  if (!place.types || place.types.length === 0) return true
+  return place.types.some(t => FOOD_DRINK_TYPES.has(t))
 }
 
 // Check if Google Maps API is loaded

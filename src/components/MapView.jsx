@@ -1,101 +1,103 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Navigation, RefreshCw, ChevronRight } from 'lucide-react'
-import { searchNearby, isGoogleMapsLoaded } from '../services/places'
+import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 
 const DEFAULT_CENTER = { lat: 30.2672, lng: -97.7431 } // Austin, TX fallback
 const TRUSTI_COLORS = { red: '#ef4444', yellow: '#eab308', green: '#22c55e' }
+const LABEL_ZOOM = 16
 
-const MAP_STYLE = [
-  { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
-  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
-  { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] },
-  { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#515c6d" }] },
-  { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38414e" }] },
-  { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#212a37" }] },
-  { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#9ca5b3" }] },
-  { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#746855" }] },
-  { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1f2835" }] },
-  { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{ "color": "#f3d19c" }] },
-  { "featureType": "poi", "elementType": "labels", "stylers": [{ "visibility": "off" }] }
-]
-
-// Build an SVG marker for review counts
-// - Single dominant color: filled circle + thin ring in secondary color
-// - Even 2-way split: half-and-half circle
-// - Even 3-way split: thirds
-function buildReviewMarkerIcon(counts) {
+// Build an SVG string for review-count dots
+function buildReviewDotSvg(counts) {
   const colors = ['green', 'yellow', 'red']
   const active = colors.filter(c => counts[c] > 0)
   const total = active.reduce((sum, c) => sum + counts[c], 0)
   const size = 20
-  const r = 8 // main radius
+  const r = 8
   const cx = size / 2
   const cy = size / 2
 
-  let svg
-
   if (active.length <= 1) {
-    // Single color — simple filled circle with white border
     const color = active[0] || 'green'
-    svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="${TRUSTI_COLORS[color]}" stroke="#fff" stroke-width="2"/>
     </svg>`
-  } else {
-    // Check if there's a dominant color
-    const sorted = [...active].sort((a, b) => counts[b] - counts[a])
-    const isDominant = counts[sorted[0]] > counts[sorted[1]]
+  }
 
-    if (isDominant) {
-      // Dominant color fills circle, ring shows secondary colors
-      const dominant = sorted[0]
-      const secondaries = sorted.slice(1)
-      // Ring: split evenly among secondary colors
-      const ringWidth = 2.5
-      const ringR = r + 0.5
-      let ringParts = ''
-      if (secondaries.length === 1) {
-        ringParts = `<circle cx="${cx}" cy="${cy}" r="${ringR}" fill="none" stroke="${TRUSTI_COLORS[secondaries[0]]}" stroke-width="${ringWidth}"/>`
-      } else {
-        // Two secondary colors — split ring in half
-        ringParts = `
-          <path d="M ${cx} ${cy - ringR} A ${ringR} ${ringR} 0 0 1 ${cx} ${cy + ringR}" fill="none" stroke="${TRUSTI_COLORS[secondaries[0]]}" stroke-width="${ringWidth}"/>
-          <path d="M ${cx} ${cy + ringR} A ${ringR} ${ringR} 0 0 1 ${cx} ${cy - ringR}" fill="none" stroke="${TRUSTI_COLORS[secondaries[1]]}" stroke-width="${ringWidth}"/>
-        `
-      }
-      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-        ${ringParts}
-        <circle cx="${cx}" cy="${cy}" r="${r - 0.5}" fill="${TRUSTI_COLORS[dominant]}" stroke="#fff" stroke-width="1.5"/>
-      </svg>`
+  const sorted = [...active].sort((a, b) => counts[b] - counts[a])
+  const isDominant = counts[sorted[0]] > counts[sorted[1]]
+
+  if (isDominant) {
+    const dominant = sorted[0]
+    const secondaries = sorted.slice(1)
+    const ringWidth = 2.5
+    const ringR = r + 0.5
+    let ringParts = ''
+    if (secondaries.length === 1) {
+      ringParts = `<circle cx="${cx}" cy="${cy}" r="${ringR}" fill="none" stroke="${TRUSTI_COLORS[secondaries[0]]}" stroke-width="${ringWidth}"/>`
     } else {
-      // Even split — pie chart segments
-      const segments = active.map(c => ({ color: c, value: counts[c] }))
-      let paths = ''
-      let startAngle = -Math.PI / 2 // start at top
-      segments.forEach(seg => {
-        const sliceAngle = (seg.value / total) * 2 * Math.PI
-        const endAngle = startAngle + sliceAngle
-        const x1 = cx + r * Math.cos(startAngle)
-        const y1 = cy + r * Math.sin(startAngle)
-        const x2 = cx + r * Math.cos(endAngle)
-        const y2 = cy + r * Math.sin(endAngle)
-        const largeArc = sliceAngle > Math.PI ? 1 : 0
-        paths += `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z" fill="${TRUSTI_COLORS[seg.color]}"/>`
-        startAngle = endAngle
-      })
-      svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-        ${paths}
-        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="2"/>
-      </svg>`
+      ringParts = `
+        <path d="M ${cx} ${cy - ringR} A ${ringR} ${ringR} 0 0 1 ${cx} ${cy + ringR}" fill="none" stroke="${TRUSTI_COLORS[secondaries[0]]}" stroke-width="${ringWidth}"/>
+        <path d="M ${cx} ${cy + ringR} A ${ringR} ${ringR} 0 0 1 ${cx} ${cy - ringR}" fill="none" stroke="${TRUSTI_COLORS[secondaries[1]]}" stroke-width="${ringWidth}"/>
+      `
     }
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+      ${ringParts}
+      <circle cx="${cx}" cy="${cy}" r="${r - 0.5}" fill="${TRUSTI_COLORS[dominant]}" stroke="#fff" stroke-width="1.5"/>
+    </svg>`
   }
 
-  return {
-    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-    scaledSize: new window.google.maps.Size(size, size),
-    anchor: new window.google.maps.Point(size / 2, size / 2),
+  // Even split — pie chart
+  const segments = active.map(c => ({ color: c, value: counts[c] }))
+  let paths = ''
+  let startAngle = -Math.PI / 2
+  segments.forEach(seg => {
+    const sliceAngle = (seg.value / total) * 2 * Math.PI
+    const endAngle = startAngle + sliceAngle
+    const x1 = cx + r * Math.cos(startAngle)
+    const y1 = cy + r * Math.sin(startAngle)
+    const x2 = cx + r * Math.cos(endAngle)
+    const y2 = cy + r * Math.sin(endAngle)
+    const largeArc = sliceAngle > Math.PI ? 1 : 0
+    paths += `<path d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z" fill="${TRUSTI_COLORS[seg.color]}"/>`
+    startAngle = endAngle
+  })
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+    ${paths}
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="2"/>
+  </svg>`
+}
+
+// Build HTML content for an AdvancedMarkerElement
+function buildMarkerContent(place, { hasReviews, counts, isBookmarked, isKeywordMatch, showLabel }) {
+  const container = document.createElement('div')
+  container.style.cssText = 'display:flex;flex-direction:column;align-items:center;'
+
+  const dot = document.createElement('div')
+  if (hasReviews) {
+    dot.innerHTML = buildReviewDotSvg(counts)
+  } else if (isBookmarked) {
+    dot.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="#8b5cf6" fill-opacity="0.9" stroke="#fff" stroke-width="1"/>
+    </svg>`
+  } else if (isKeywordMatch) {
+    dot.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="24" viewBox="0 0 24 24">
+      <path d="M12 0C7.58 0 4 3.58 4 8c0 5.25 8 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" fill="#16a34a" fill-opacity="0.9" stroke="#fff" stroke-width="1"/>
+    </svg>`
+  } else {
+    dot.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+      <circle cx="8" cy="8" r="7" fill="#9ca3af" fill-opacity="0.7" stroke="#fff" stroke-width="1"/>
+    </svg>`
   }
+  container.appendChild(dot)
+
+  const label = document.createElement('div')
+  label.textContent = place.name
+  label.style.cssText = 'font-size:11px;font-weight:500;color:#fff;background:rgba(30,41,59,0.85);padding:2px 6px;border-radius:4px;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;margin-top:2px;pointer-events:none;'
+  if (!showLabel) label.style.display = 'none'
+  container.appendChild(label)
+
+  return { element: container, labelEl: label }
 }
 
 function isZipCode(text) {
@@ -123,6 +125,9 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersRef = useRef([])
+  const markerLabelsRef = useRef([])
+  const advancedMarkerClassRef = useRef(null)
+  const listRef = useRef(null)
   const userMarkerRef = useRef(null)
   const searchKeywordRef = useRef(searchKeyword)
   const filterRef = useRef(filter)
@@ -130,7 +135,8 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
   const idleTimerRef = useRef(null)
   const skipNextIdleRef = useRef(false)
   const searchGenRef = useRef(0)
-  const centeredKeywordRef = useRef(null) // tracks which keyword we've already centered on
+  const centeredKeywordRef = useRef(null)
+  const highlightTimerRef = useRef(null)
   const [places, setPlaces] = useState([])
   const [userLocation, setUserLocation] = useState(null)
   const [mapReady, setMapReady] = useState(false)
@@ -145,6 +151,20 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
   useEffect(() => {
     filterRef.current = filter
   }, [filter])
+
+  // Scroll to a place card in the list and highlight it
+  const scrollToCard = useCallback((placeId) => {
+    const cardEl = listRef.current?.querySelector(`[data-place-id="${placeId}"]`)
+    if (!cardEl) return
+    cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    cardEl.style.outline = '2px solid #22c55e'
+    cardEl.style.outlineOffset = '-2px'
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current)
+    highlightTimerRef.current = setTimeout(() => {
+      cardEl.style.outline = ''
+      cardEl.style.outlineOffset = ''
+    }, 2000)
+  }, [])
 
   // Search at a given center with a given keyword
   const searchAtLocation = useCallback(async (center, keyword) => {
@@ -173,7 +193,6 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
 
     // For "reviewed" and "bookmarked" filters, skip Google Places search
     if (activeFilter === 'reviewed') {
-      // Show trusti-reviewed places within visible map bounds
       const bounds = mapInstanceRef.current.getBounds()
       reviewsByPlace.forEach((recs, placeId) => {
         const rec = recs[0]
@@ -194,7 +213,6 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         }
       })
     } else if (activeFilter === 'bookmarked') {
-      // Show only bookmarked places
       const bounds = mapInstanceRef.current.getBounds()
       bookmarks.forEach(b => {
         const lat = b.placeLat
@@ -215,15 +233,13 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
       })
     } else {
       // "all" filter — use Google Places search
-      // For keyword searches, also fetch nearby places in parallel for gray dots
       if (keyword) {
         const [keywordResults, nearbyResults] = await Promise.all([
           searchNearby(mapInstanceRef.current, center, keyword),
           searchNearby(mapInstanceRef.current, center, ''),
         ])
-        if (gen !== searchGenRef.current) return // cancelled by newer search
+        if (gen !== searchGenRef.current) return
 
-        // Mark keyword results whose name actually matches the search term
         const keywordPlaceIds = new Set(keywordResults.map(r => r.placeId))
         const keywordWords = keyword.toLowerCase().split(/\s+/).filter(w => w.length > 1)
         keywordResults.forEach(r => {
@@ -233,10 +249,8 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
           }
         })
 
-        // Start with keyword results
         results = keywordResults
 
-        // Add nearby places that aren't already in keyword results
         nearbyResults.forEach(r => {
           if (!keywordPlaceIds.has(r.placeId)) {
             results.push(r)
@@ -245,7 +259,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
 
       } else {
         results = await searchNearby(mapInstanceRef.current, center, '')
-        if (gen !== searchGenRef.current) return // cancelled by newer search
+        if (gen !== searchGenRef.current) return
       }
 
       // Also add trusti-reviewed and bookmarked places not already in results
@@ -308,7 +322,6 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
       results.sort((a, b) => {
         const countsA = getDeduplicatedCounts(reviewsByPlace.get(a.placeId) || [])
         const countsB = getDeduplicatedCounts(reviewsByPlace.get(b.placeId) || [])
-        // Score: green=3, yellow=2, red=1, weighted by count
         const scoreA = countsA.green * 3 + countsA.yellow * 2 + countsA.red
         const scoreB = countsB.green * 3 + countsB.yellow * 2 + countsB.red
         return scoreB - scoreA
@@ -318,76 +331,105 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     setPlaces(results)
 
     // Clear old markers
-    markersRef.current.forEach(m => m.setMap(null))
+    markersRef.current.forEach(m => { m.map = null })
     markersRef.current = []
+    markerLabelsRef.current = []
+
+    const AdvancedMarker = advancedMarkerClassRef.current
+    const map = mapInstanceRef.current
+    const showLabel = (map.getZoom() || 15) >= LABEL_ZOOM
 
     results.forEach(place => {
-      // Skip marker for places without coordinates (still shown in list)
       if (place.lat == null || place.lng == null) return
 
       const placeReviews = reviewsByPlace.get(place.placeId) || []
       const hasReviews = placeReviews.length > 0
       const isBookmarked = bookmarkedSet.has(place.placeId)
 
-      // Determine marker icon
-      let icon
-      if (hasReviews) {
-        const counts = getDeduplicatedCounts(placeReviews)
-        icon = buildReviewMarkerIcon(counts)
-      } else if (isBookmarked) {
-        icon = {
-          path: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-          fillColor: '#8b5cf6',
-          fillOpacity: 0.9,
-          strokeColor: '#fff',
-          strokeWeight: 1,
-          scale: 1.2,
-          anchor: new window.google.maps.Point(12, 12),
-        }
-      } else if (place._keywordMatch) {
-        icon = {
-          path: 'M12 0C7.58 0 4 3.58 4 8c0 5.25 8 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z',
-          fillColor: '#16a34a',
-          fillOpacity: 0.9,
-          strokeColor: '#fff',
-          strokeWeight: 1,
-          scale: 1.4,
-          anchor: new window.google.maps.Point(12, 21),
-        }
-      } else {
-        icon = {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#9ca3af',
-          fillOpacity: 0.7,
-          strokeColor: '#fff',
-          strokeWeight: 1,
-        }
-      }
-
-      const marker = new window.google.maps.Marker({
-        position: { lat: place.lat, lng: place.lng },
-        map: mapInstanceRef.current,
-        title: place.name,
-        icon,
-      })
-
-      marker.addListener('click', () => {
-        onPlaceSelect?.({
-          placeId: place.placeId,
-          name: place.name,
-          address: place.address,
-          lat: place.lat,
-          lng: place.lng,
+      if (AdvancedMarker) {
+        const counts = hasReviews ? getDeduplicatedCounts(placeReviews) : null
+        const { element, labelEl } = buildMarkerContent(place, {
+          hasReviews,
+          counts,
+          isBookmarked,
+          isKeywordMatch: !!place._keywordMatch,
+          showLabel,
         })
-      })
 
-      markersRef.current.push(marker)
+        const marker = new AdvancedMarker({
+          map,
+          position: { lat: place.lat, lng: place.lng },
+          content: element,
+          title: place.name,
+          gmpClickable: true,
+        })
+
+        marker.addEventListener('gmp-click', () => {
+          scrollToCard(place.placeId)
+        })
+
+        markersRef.current.push(marker)
+        markerLabelsRef.current.push(labelEl)
+      } else {
+        // Fallback: legacy google.maps.Marker (if marker library failed to load)
+        let icon
+        if (hasReviews) {
+          const counts = getDeduplicatedCounts(placeReviews)
+          const svgStr = buildReviewDotSvg(counts)
+          icon = {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgStr),
+            scaledSize: new window.google.maps.Size(20, 20),
+            anchor: new window.google.maps.Point(10, 10),
+          }
+        } else if (isBookmarked) {
+          icon = {
+            path: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+            fillColor: '#8b5cf6',
+            fillOpacity: 0.9,
+            strokeColor: '#fff',
+            strokeWeight: 1,
+            scale: 1.2,
+            anchor: new window.google.maps.Point(12, 12),
+          }
+        } else if (place._keywordMatch) {
+          icon = {
+            path: 'M12 0C7.58 0 4 3.58 4 8c0 5.25 8 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z',
+            fillColor: '#16a34a',
+            fillOpacity: 0.9,
+            strokeColor: '#fff',
+            strokeWeight: 1,
+            scale: 1.4,
+            anchor: new window.google.maps.Point(12, 21),
+          }
+        } else {
+          icon = {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            fillColor: '#9ca3af',
+            fillOpacity: 0.7,
+            strokeColor: '#fff',
+            strokeWeight: 1,
+          }
+        }
+
+        const marker = new window.google.maps.Marker({
+          position: { lat: place.lat, lng: place.lng },
+          map,
+          title: place.name,
+          icon,
+        })
+
+        marker.addListener('click', () => {
+          scrollToCard(place.placeId)
+        })
+
+        markersRef.current.push(marker)
+      }
     })
 
     setLoading(false)
     return results
-  }, [trustiRecs, bookmarks, onPlaceSelect])
+  }, [trustiRecs, bookmarks, onPlaceSelect, scrollToCard])
 
   // Keep ref in sync so idle listener always uses latest version
   useEffect(() => {
@@ -428,7 +470,6 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         })
       }
 
-      // Clear search and go to browse mode at user's location
       centeredKeywordRef.current = null
       onClearSearch?.()
       await searchAtLocation(loc, '')
@@ -463,6 +504,14 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         return
       }
 
+      // Load AdvancedMarkerElement library
+      try {
+        const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker')
+        advancedMarkerClassRef.current = AdvancedMarkerElement
+      } catch (err) {
+        console.warn('Failed to load marker library, falling back to legacy markers:', err)
+      }
+
       let center = DEFAULT_CENTER
       try {
         const pos = await new Promise((resolve, reject) => {
@@ -481,6 +530,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
       const map = new window.google.maps.Map(mapRef.current, {
         center,
         zoom: 15,
+        mapId: 'c35383f740cf2c5bd706182f',
         disableDefaultUI: true,
         zoomControl: true,
         gestureHandling: 'greedy',
@@ -488,7 +538,6 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        styles: MAP_STYLE,
       })
 
       mapInstanceRef.current = map
@@ -509,21 +558,24 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         })
       }
 
-      // Auto-refresh places when map stops moving (drag, zoom, etc.)
-      // Always searches what's visible on the map (no keyword = browse mode)
-      // If user has a keyword active, re-search with that keyword but don't re-fit
+      // Toggle marker labels on zoom change
+      map.addListener('zoom_changed', () => {
+        const show = (map.getZoom() || 15) >= LABEL_ZOOM
+        markerLabelsRef.current.forEach(label => {
+          label.style.display = show ? 'block' : 'none'
+        })
+      })
+
+      // Auto-refresh places when map stops moving
       map.addListener('idle', () => {
         if (!mounted) return
-        // Skip idle events triggered by programmatic pans (keyword search, goToMyLocation)
         if (skipNextIdleRef.current) {
           skipNextIdleRef.current = false
           return
         }
-        // Debounce to avoid rapid-fire searches
         if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
         idleTimerRef.current = setTimeout(() => {
           const c = map.getCenter()
-          // Use ref to always get the latest searchAtLocation (avoids stale closure)
           searchAtLocationRef.current?.({ lat: c.lat(), lng: c.lng() }, searchKeywordRef.current || '')
         }, 600)
       })
@@ -550,37 +602,27 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
       const center = mapInstanceRef.current.getCenter()
       const mapCenter = { lat: center.lat(), lng: center.lng() }
 
-      // If it's a keyword search, we do a two-step process:
-      // 1. Find the primary result and pan to it.
-      // 2. Run the full searchAtLocation at the new location to get context.
       if (keyword && centeredKeywordRef.current !== keyword) {
         centeredKeywordRef.current = keyword
         setLoading(true)
 
-        // Step 1: Find the primary result
         const keywordResults = await searchNearby(mapInstanceRef.current, mapCenter, keyword)
         const firstResult = keywordResults.find(r => r.lat != null && r.lng != null)
 
         if (firstResult) {
           const newCenter = { lat: firstResult.lat, lng: firstResult.lng }
-          // Pan map to the result
           skipNextIdleRef.current = true
           mapInstanceRef.current.setCenter(newCenter)
           mapInstanceRef.current.setZoom(15)
-
-          // Step 2: Run the full contextual search at the new location
           await searchAtLocationRef.current?.(newCenter, keyword)
         } else {
-          // No results for keyword, just run a normal search at the current spot
           await searchAtLocationRef.current?.(mapCenter, keyword)
         }
       } else {
-        // Normal search (no keyword, or keyword has already been centered)
         await searchAtLocationRef.current?.(mapCenter, keyword)
       }
     }
 
-    // Special case for zip code search
     const keyword = searchKeyword || ''
     if (keyword && isZipCode(keyword)) {
       setLoading(true)
@@ -637,7 +679,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
       </div>
 
       {/* Nearby places list - scrollable */}
-      <div className="mt-3 flex-1 overflow-y-auto min-h-0">
+      <div ref={listRef} className="mt-3 flex-1 overflow-y-auto min-h-0">
         {loading && places.length === 0 && (
           <div className="space-y-2">
             {[1, 2, 3].map(i => (
@@ -675,7 +717,9 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
               return (
                 <div
                   key={place.placeId}
+                  data-place-id={place.placeId}
                   className="flex items-center bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors"
+                  style={{ transition: 'outline 0.3s ease, background-color 0.15s ease' }}
                 >
                   {/* Tapping the main area pans the map to this place */}
                   <button
