@@ -207,7 +207,7 @@ export async function searchNearby(mapInstance, location, keyword = '') {
 // Food & drink place types — everything else (gas stations, stores, etc.) is hidden
 const FOOD_DRINK_TYPES = new Set([
   'restaurant', 'cafe', 'bar', 'bakery', 'meal_delivery', 'meal_takeaway',
-  'food', 'night_club',
+  'night_club',
 ])
 
 export function isFoodOrDrink(place) {

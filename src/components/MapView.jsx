@@ -7,6 +7,21 @@ const DEFAULT_CENTER = { lat: 30.2672, lng: -97.7431 } // Austin, TX fallback
 const TRUSTI_COLORS = { red: '#ef4444', yellow: '#eab308', green: '#22c55e' }
 const LABEL_ZOOM = 16
 
+const MAP_STYLE = [
+  { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
+  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
+  { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] },
+  { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#515c6d" }] },
+  { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38414e" }] },
+  { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#212a37" }] },
+  { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#9ca5b3" }] },
+  { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#746855" }] },
+  { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1f2835" }] },
+  { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{ "color": "#f3d19c" }] },
+  { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
+]
+
 // Build an SVG string for review-count dots
 function buildReviewDotSvg(counts) {
   const colors = ['green', 'yellow', 'red']
@@ -136,12 +151,12 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
   const skipNextIdleRef = useRef(false)
   const searchGenRef = useRef(0)
   const centeredKeywordRef = useRef(null)
-  const highlightTimerRef = useRef(null)
   const [places, setPlaces] = useState([])
   const [userLocation, setUserLocation] = useState(null)
   const [mapReady, setMapReady] = useState(false)
   const [loading, setLoading] = useState(true)
   const [locating, setLocating] = useState(false)
+  const [selectedPlaceId, setSelectedPlaceId] = useState(null)
 
   // Keep refs in sync
   useEffect(() => {
@@ -152,18 +167,14 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     filterRef.current = filter
   }, [filter])
 
-  // Scroll to a place card in the list and highlight it
+  // Scroll to a place card in the list and highlight it persistently
   const scrollToCard = useCallback((placeId) => {
-    const cardEl = listRef.current?.querySelector(`[data-place-id="${placeId}"]`)
-    if (!cardEl) return
-    cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    cardEl.style.outline = '2px solid #22c55e'
-    cardEl.style.outlineOffset = '-2px'
-    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current)
-    highlightTimerRef.current = setTimeout(() => {
-      cardEl.style.outline = ''
-      cardEl.style.outlineOffset = ''
-    }, 2000)
+    setSelectedPlaceId(placeId)
+    // Wait a tick for React to re-render the highlight, then scroll
+    setTimeout(() => {
+      const cardEl = listRef.current?.querySelector(`[data-place-id="${placeId}"]`)
+      if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 0)
   }, [])
 
   // Search at a given center with a given keyword
@@ -538,6 +549,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
+        styles: MAP_STYLE,
       })
 
       mapInstanceRef.current = map
@@ -564,6 +576,11 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         markerLabelsRef.current.forEach(label => {
           label.style.display = show ? 'block' : 'none'
         })
+      })
+
+      // Clear card highlight when tapping the map background
+      map.addListener('click', () => {
+        setSelectedPlaceId(null)
       })
 
       // Auto-refresh places when map stops moving
@@ -714,12 +731,18 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
               const hasReviews = placeReviews.length > 0
               const isBookmarked = bookmarks.some(b => b.placeId === place.placeId)
 
+              const isSelected = selectedPlaceId === place.placeId
+
               return (
                 <div
                   key={place.placeId}
                   data-place-id={place.placeId}
-                  className="flex items-center bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors"
-                  style={{ transition: 'outline 0.3s ease, background-color 0.15s ease' }}
+                  className={`flex items-center rounded-lg transition-colors ${isSelected ? 'bg-slate-700' : 'bg-slate-800 hover:bg-slate-700'}`}
+                  style={{
+                    outline: isSelected ? '2px solid #3b82f6' : 'none',
+                    outlineOffset: isSelected ? '-2px' : '0',
+                    transition: 'outline 0.3s ease, background-color 0.15s ease',
+                  }}
                 >
                   {/* Tapping the main area pans the map to this place */}
                   <button
