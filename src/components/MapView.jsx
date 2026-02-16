@@ -158,7 +158,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     // Wait a tick for React to re-render the highlight, then scroll
     setTimeout(() => {
       const cardEl = listRef.current?.querySelector(`[data-place-id="${placeId}"]`)
-      if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 0)
   }, [])
 
