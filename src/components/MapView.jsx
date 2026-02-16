@@ -152,13 +152,15 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     filterRef.current = filter
   }, [filter])
 
-  // Scroll to a place card in the list and highlight it persistently
+  // Scroll to a place card in the list so it sits at the top of the visible area
   const scrollToCard = useCallback((placeId) => {
     setSelectedPlaceId(placeId)
-    // Wait a tick for React to re-render the highlight, then scroll
     setTimeout(() => {
-      const cardEl = listRef.current?.querySelector(`[data-place-id="${placeId}"]`)
-      if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const list = listRef.current
+      const cardEl = list?.querySelector(`[data-place-id="${placeId}"]`)
+      if (list && cardEl) {
+        list.scrollTo({ top: cardEl.offsetTop - list.offsetTop, behavior: 'smooth' })
+      }
     }, 0)
   }, [])
 
@@ -596,10 +598,10 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
   return (
     <div className="flex flex-col h-full">
       {/* Map with buttons */}
-      <div className="relative shrink-0">
+      <div className="relative flex-1 min-h-0">
         <div
           ref={mapRef}
-          className="w-full h-64 sm:h-72 rounded-xl overflow-hidden bg-slate-800"
+          className="w-full h-full overflow-hidden bg-slate-800"
         >
           {!isGoogleMapsLoaded() && (
             <div className="flex items-center justify-center h-full text-slate-400 text-xs">
@@ -631,8 +633,8 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         )}
       </div>
 
-      {/* Nearby places list - scrollable */}
-      <div ref={listRef} className="mt-3 flex-1 overflow-y-auto min-h-0">
+      {/* Nearby places list - scrollable, 2.5 cards visible on mobile, full on desktop */}
+      <div ref={listRef} className="mt-2 overflow-y-auto shrink-0 max-md:h-[190px] md:flex-1 md:min-h-0">
         {loading && places.length === 0 && (
           <div className="space-y-2">
             {[1, 2, 3].map(i => (

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { LogOut } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { LogOut, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { getUserProfile, getUserRecommendations, deleteRecommendation } from '../services/firestore'
 import RecommendationCard from './RecommendationCard'
@@ -54,6 +55,12 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-md mx-auto px-4 pt-4">
+      {/* Back arrow */}
+      <Link to="/" className="inline-flex items-center gap-1 text-slate-400 hover:text-white transition-colors mb-3">
+        <ArrowLeft size={20} />
+        <span className="text-sm">Back</span>
+      </Link>
+
       {/* Profile Header */}
       <div className="bg-slate-800 rounded-2xl p-5 mb-4 shadow-sm">
         <div className="flex items-center gap-4">

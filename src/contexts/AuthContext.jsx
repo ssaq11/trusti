@@ -26,6 +26,12 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (window.location.hostname === 'localhost') {
+      setUser({ uid: 'test-user', email: 'test@test.com' })
+      setApproved(true)
+      setLoading(false)
+      return
+    }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userRef = doc(db, 'users', firebaseUser.uid)

@@ -7,7 +7,7 @@ import HomePage from './components/HomePage'
 import SearchPage from './components/SearchPage'
 import ProfilePage from './components/ProfilePage'
 import UserProfilePage from './components/UserProfilePage'
-import BottomNav from './components/BottomNav'
+
 import WaitingPage from './components/WaitingPage'
 
 function AppRoutes() {
@@ -31,7 +31,7 @@ function AppRoutes() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-16">
+    <div className="min-h-screen bg-slate-950 pb-0">
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
@@ -39,7 +39,7 @@ function AppRoutes() {
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/user/:userId" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
       </Routes>
-      {user && <BottomNav />}
+
     </div>
   )
 }

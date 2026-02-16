@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, Clock } from 'lucide-react'
+import { Search, Clock, Menu, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords } from '../services/firestore'
 import MapView from './MapView'
@@ -20,6 +21,7 @@ export default function HomePage() {
     try { return JSON.parse(localStorage.getItem('trusti_recent_searches') || '[]') } catch { return [] }
   })
   const searchInputRef = useRef(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   function saveRecentSearch(keyword) {
     if (!keyword) return
@@ -128,88 +130,91 @@ export default function HomePage() {
   }
 
   return (
-    <div className="max-w-md mx-auto h-[calc(100dvh-64px)] flex flex-col">
-      {/* Header - fixed */}
+    <div className="max-w-md mx-auto h-dvh flex flex-col relative">
+      {/* Header - logo only */}
       <div className="px-4 pt-3 pb-1 shrink-0">
-        <a href="/" className="flex items-baseline mb-3 no-underline" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 500, fontSize: "1.75rem", lineHeight: "0.8" }}>
+        <a href="/" className="flex items-baseline no-underline" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 500, fontSize: "1.75rem", lineHeight: "0.8" }}>
           <span style={{color: "#4B8BBE"}}>trustı</span>
           <span style={{color: "#2ECC71"}}>.</span>
           <span style={{color: "#4B8BBE"}}>es</span>
         </a>
-
-        {/* Search bar */}
-        <div className="relative mb-2">
-          <form onSubmit={handleSearch} className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder='Try "tacos", "coffee", or a zip code...'
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onFocus={() => { if (recentSearches.length > 0 && !searchInput) setShowRecent(true) }}
-              onBlur={() => setTimeout(() => setShowRecent(false), 150)}
-              className="w-full pl-9 pr-16 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 text-xs"
-              >
-                Clear
-              </button>
-            )}
-            <button
-              type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-green-600 text-white text-xs rounded-lg"
-            >
-              Go
-            </button>
-          </form>
-          {/* Recent searches dropdown */}
-          {showRecent && recentSearches.length > 0 && (
-            <div className="absolute z-20 w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-lg overflow-hidden">
-              {recentSearches.map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => selectRecentSearch(s)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-slate-800 transition-colors"
-                >
-                  <Clock size={14} className="text-slate-400 shrink-0" />
-                  <span className="text-sm text-white truncate">{s}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Filter tabs */}
-        <div className="flex gap-2 mb-1">
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'reviewed', label: 'Trusti Reviews' },
-            { key: 'bookmarked', label: 'Want to Go' },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setFilter(tab.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                filter === tab.key
-                  ? 'bg-green-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Map + scrollable places list */}
-      <div className="px-4 flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 relative">
+        {/* Search bar + hamburger + filter tabs floating over the map */}
+        <div className="absolute top-2 left-0 right-0 z-10 px-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="p-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white backdrop-blur-sm shrink-0"
+            >
+              <Menu size={18} />
+            </button>
+            <div className="relative w-[70%]">
+              <form onSubmit={handleSearch} className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Find a place..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onFocus={() => { if (recentSearches.length > 0 && !searchInput) setShowRecent(true) }}
+                  onBlur={() => setTimeout(() => setShowRecent(false), 150)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-700 border border-slate-500 text-white text-sm placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 text-xs"
+                  >
+                    Clear
+                  </button>
+                )}
+              </form>
+              {/* Recent searches dropdown */}
+              {showRecent && recentSearches.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-slate-900 border border-slate-700 rounded-xl shadow-lg overflow-hidden">
+                  {recentSearches.map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectRecentSearch(s)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-slate-800 transition-colors"
+                    >
+                      <Clock size={14} className="text-slate-400 shrink-0" />
+                      <span className="text-sm text-white truncate">{s}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Filter tabs */}
+          <div className="flex gap-2 mt-2">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'reviewed', label: 'Trusti Reviews' },
+              { key: 'bookmarked', label: 'Want to Go' },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors backdrop-blur-sm ${
+                  filter === tab.key
+                    ? 'bg-green-600 text-white border border-green-600'
+                    : 'bg-slate-800/90 text-slate-400 hover:bg-slate-700 border-2 border-green-600/40'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <MapView
           onPlaceSelect={handlePlaceSelect}
           onClearSearch={clearSearch}
@@ -219,6 +224,39 @@ export default function HomePage() {
           filter={filter}
         />
       </div>
+
+      {/* Slide-in side menu — scoped to app container */}
+      {menuOpen && (
+        <div className="absolute inset-0 z-50 flex overflow-hidden">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMenuOpen(false)} />
+          {/* Panel — 60% of app width */}
+          <div className="relative w-[60%] max-w-[260px] bg-slate-900 h-full shadow-xl flex flex-col animate-[slideIn_0.2s_ease-out]">
+            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-800">
+              <span className="text-white font-medium text-lg" style={{ fontFamily: "'Quicksand', sans-serif" }}>Menu</span>
+              <button onClick={() => setMenuOpen(false)} className="text-slate-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            <nav className="flex-1 px-4 py-4 space-y-1">
+              <Link
+                to="/search"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors no-underline"
+              >
+                People
+              </Link>
+              <Link
+                to="/profile"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors no-underline"
+              >
+                Profile
+              </Link>
+            </nav>
+          </div>
+        </div>
+      )}
 
       {/* Place detail modal */}
       {selectedPlace && (

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Share2, X, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, Share2, X, Plus, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import {
   searchUsers, followUser, unfollowUser, isFollowing,
@@ -162,7 +162,12 @@ export default function SearchPage() {
   return (
     <div className="max-w-md mx-auto px-4 pt-4 pb-20">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-white">People</h1>
+        <div className="flex items-center gap-2">
+          <Link to="/" className="text-slate-400 hover:text-white transition-colors">
+            <ArrowLeft size={20} />
+          </Link>
+          <h1 className="text-xl font-bold text-white">People</h1>
+        </div>
         <button
           onClick={handleInvite}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
