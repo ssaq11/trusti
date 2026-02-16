@@ -16,7 +16,7 @@
         const key = '%VITE_GOOGLE_MAPS_KEY%';
         if (key && !key.startsWith('%')) {
           const script = document.createElement('script');
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`;
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places,marker&v=weekly`;
           script.async = true;
           document.head.appendChild(script);
         }

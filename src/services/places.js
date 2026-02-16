@@ -87,68 +87,54 @@ export async function getPlaceDetails(placeId) {
   const loaded = await waitForGoogle()
   if (!loaded || !window.google?.maps?.places) return null
 
-  const div = document.createElement('div')
-  const service = new window.google.maps.places.PlacesService(div)
-
-  return new Promise((resolve) => {
-    service.getDetails(
-      {
-        placeId,
-        fields: ['name', 'formatted_address', 'address_components', 'geometry', 'types', 'rating', 'photos'],
-        sessionToken: getSessionToken(),
-      },
-      (place, status) => {
-        resetSessionToken()
-        if (status !== window.google.maps.places.PlacesServiceStatus.OK || !place) {
-          resolve(null)
-          return
-        }
-        const zipComponent = place.address_components?.find(c => c.types.includes('postal_code'))
-        resolve({
-          placeId,
-          name: place.name,
-          address: place.formatted_address,
-          zipCode: zipComponent?.long_name || '',
-          lat: place.geometry?.location?.lat(),
-          lng: place.geometry?.location?.lng(),
-          rating: place.rating,
-          photoUrl: place.photos?.[0]?.getUrl({ maxWidth: 400 }) || null,
-        })
-      }
-    )
-  })
+  try {
+    resetSessionToken()
+    const place = new window.google.maps.places.Place({ id: placeId })
+    await place.fetchFields({
+      fields: ['displayName', 'formattedAddress', 'addressComponents', 'location', 'types', 'rating', 'photos'],
+    })
+    const zipComponent = place.addressComponents?.find(c => c.types?.includes('postal_code'))
+    return {
+      placeId,
+      name: place.displayName,
+      address: place.formattedAddress,
+      zipCode: zipComponent?.longText || '',
+      lat: place.location?.lat(),
+      lng: place.location?.lng(),
+      rating: place.rating,
+      photoUrl: place.photos?.[0]?.getURI({ maxWidth: 400 }) || null,
+    }
+  } catch (err) {
+    console.warn('Place.fetchFields failed:', err)
+    return null
+  }
 }
 
 // Search for places within the visible map area
-// Uses textSearch when a keyword is provided (much better results)
-// Uses nearbySearch for default browsing (no keyword)
-// Always constrains results to the map's visible bounds
+// Uses Place.searchByText when a keyword is provided
+// Uses Place.searchNearby for default browsing (no keyword)
 export async function searchNearby(mapInstance, location, keyword = '') {
   const loaded = await waitForGoogle()
   if (!loaded || !mapInstance) return []
 
-  // Use a detached div instead of the map instance to prevent
-  // PlacesService from auto-panning/zooming the map to show results
-  const div = document.createElement('div')
-  const service = new window.google.maps.places.PlacesService(div)
-  const latLng = new window.google.maps.LatLng(location.lat, location.lng)
+  const Place = window.google.maps.places.Place
   const bounds = mapInstance.getBounds?.() || null
+  const PLACE_FIELDS = ['id', 'displayName', 'formattedAddress', 'location', 'rating', 'photos', 'types']
 
-  function mapResult(r) {
+  function mapPlaceResult(p) {
     return {
-      placeId: r.place_id,
-      name: r.name,
-      address: r.formatted_address || r.vicinity || '',
-      lat: r.geometry?.location?.lat(),
-      lng: r.geometry?.location?.lng(),
-      rating: r.rating,
-      priceLevel: r.price_level,
-      photoUrl: r.photos?.[0]?.getUrl({ maxWidth: 200 }) || null,
-      types: r.types,
+      placeId: p.id,
+      name: p.displayName,
+      address: p.formattedAddress || '',
+      lat: p.location?.lat(),
+      lng: p.location?.lng(),
+      rating: p.rating,
+      priceLevel: p.priceLevel,
+      photoUrl: p.photos?.[0]?.getURI({ maxWidth: 200 }) || null,
+      types: p.types || [],
     }
   }
 
-  // Filter results to only include places within visible map bounds
   function filterToBounds(results) {
     if (!bounds) return results
     return results.filter(r => {
@@ -158,50 +144,46 @@ export async function searchNearby(mapInstance, location, keyword = '') {
   }
 
   if (keyword) {
-    // Keyword search: bias to visible map bounds, return all results
-    // (let caller decide whether to filter or pan to fit)
-    const request = {
-      query: keyword,
-    }
-    if (bounds) {
-      request.bounds = bounds
-    } else {
-      request.location = latLng
-      request.radius = 5000
-    }
-
-    return new Promise((resolve) => {
-      service.textSearch(request, (results, status) => {
-        if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results) {
-          console.warn('Text search status:', status)
-          resolve([])
-          return
-        }
-        resolve(results.map(mapResult).filter(isFoodOrDrink))
-      })
-    })
-  }
-
-  // Default: nearby search for all food & drink using map bounds
-  const request = {}
-  if (bounds) {
-    request.bounds = bounds
-  } else {
-    request.location = latLng
-    request.radius = 3000
-  }
-  request.keyword = 'restaurant | cafe | bar | coffee | bakery | food'
-
-  return new Promise((resolve) => {
-    service.nearbySearch(request, (results, status) => {
-      if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results) {
-        console.warn('Nearby search status:', status)
-        resolve([])
-        return
+    try {
+      const request = {
+        textQuery: keyword,
+        fields: PLACE_FIELDS,
       }
-      resolve(filterToBounds(results.map(mapResult)).filter(isFoodOrDrink))
+      if (bounds) {
+        request.locationBias = bounds
+      } else {
+        request.locationBias = { lat: location.lat, lng: location.lng, radius: 5000 }
+      }
+      const { places } = await Place.searchByText(request)
+      return (places || []).map(mapPlaceResult).filter(isFoodOrDrink)
+    } catch (err) {
+      console.warn('Place.searchByText failed:', err)
+      return []
+    }
+  }
+
+  // Default: nearby search for food & drink
+  try {
+    const center = bounds
+      ? { lat: bounds.getCenter().lat(), lng: bounds.getCenter().lng() }
+      : { lat: location.lat, lng: location.lng }
+    const radius = bounds
+      ? Math.max(
+          Math.abs(bounds.getNorthEast().lat() - bounds.getSouthWest().lat()) * 111000 / 2,
+          500
+        )
+      : 3000
+    const { places } = await Place.searchNearby({
+      fields: PLACE_FIELDS,
+      locationRestriction: { center, radius: Math.min(radius, 50000) },
+      includedPrimaryTypes: ['restaurant', 'cafe', 'bar', 'bakery', 'meal_delivery', 'meal_takeaway', 'night_club'],
+      maxResultCount: 20,
     })
-  })
+    return filterToBounds((places || []).map(mapPlaceResult)).filter(isFoodOrDrink)
+  } catch (err) {
+    console.warn('Place.searchNearby failed:', err)
+    return []
+  }
 }
 
 // Food & drink place types — everything else (gas stations, stores, etc.) is hidden

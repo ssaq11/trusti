@@ -7,21 +7,6 @@ const DEFAULT_CENTER = { lat: 30.2672, lng: -97.7431 } // Austin, TX fallback
 const TRUSTI_COLORS = { red: '#ef4444', yellow: '#eab308', green: '#22c55e' }
 const LABEL_ZOOM = 16
 
-const MAP_STYLE = [
-  { "elementType": "geometry", "stylers": [{ "color": "#242f3e" }] },
-  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#242f3e" }] },
-  { "elementType": "labels.text.fill", "stylers": [{ "color": "#746855" }] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#17263c" }] },
-  { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#515c6d" }] },
-  { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#38414e" }] },
-  { "featureType": "road", "elementType": "geometry.stroke", "stylers": [{ "color": "#212a37" }] },
-  { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#9ca5b3" }] },
-  { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#746855" }] },
-  { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1f2835" }] },
-  { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{ "color": "#f3d19c" }] },
-  { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
-]
-
 // Build an SVG string for review-count dots
 function buildReviewDotSvg(counts) {
   const colors = ['green', 'yellow', 'red']
@@ -357,85 +342,29 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
       const hasReviews = placeReviews.length > 0
       const isBookmarked = bookmarkedSet.has(place.placeId)
 
-      if (AdvancedMarker) {
-        const counts = hasReviews ? getDeduplicatedCounts(placeReviews) : null
-        const { element, labelEl } = buildMarkerContent(place, {
-          hasReviews,
-          counts,
-          isBookmarked,
-          isKeywordMatch: !!place._keywordMatch,
-          showLabel,
-        })
+      const counts = hasReviews ? getDeduplicatedCounts(placeReviews) : null
+      const { element, labelEl } = buildMarkerContent(place, {
+        hasReviews,
+        counts,
+        isBookmarked,
+        isKeywordMatch: !!place._keywordMatch,
+        showLabel,
+      })
 
-        const marker = new AdvancedMarker({
-          map,
-          position: { lat: place.lat, lng: place.lng },
-          content: element,
-          title: place.name,
-          gmpClickable: true,
-        })
+      const marker = new AdvancedMarker({
+        map,
+        position: { lat: place.lat, lng: place.lng },
+        content: element,
+        title: place.name,
+        gmpClickable: true,
+      })
 
-        marker.addEventListener('gmp-click', () => {
-          scrollToCard(place.placeId)
-        })
+      marker.addEventListener('gmp-click', () => {
+        scrollToCard(place.placeId)
+      })
 
-        markersRef.current.push(marker)
-        markerLabelsRef.current.push(labelEl)
-      } else {
-        // Fallback: legacy google.maps.Marker (if marker library failed to load)
-        let icon
-        if (hasReviews) {
-          const counts = getDeduplicatedCounts(placeReviews)
-          const svgStr = buildReviewDotSvg(counts)
-          icon = {
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svgStr),
-            scaledSize: new window.google.maps.Size(20, 20),
-            anchor: new window.google.maps.Point(10, 10),
-          }
-        } else if (isBookmarked) {
-          icon = {
-            path: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-            fillColor: '#8b5cf6',
-            fillOpacity: 0.9,
-            strokeColor: '#fff',
-            strokeWeight: 1,
-            scale: 1.2,
-            anchor: new window.google.maps.Point(12, 12),
-          }
-        } else if (place._keywordMatch) {
-          icon = {
-            path: 'M12 0C7.58 0 4 3.58 4 8c0 5.25 8 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z',
-            fillColor: '#16a34a',
-            fillOpacity: 0.9,
-            strokeColor: '#fff',
-            strokeWeight: 1,
-            scale: 1.4,
-            anchor: new window.google.maps.Point(12, 21),
-          }
-        } else {
-          icon = {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 7,
-            fillColor: '#9ca3af',
-            fillOpacity: 0.7,
-            strokeColor: '#fff',
-            strokeWeight: 1,
-          }
-        }
-
-        const marker = new window.google.maps.Marker({
-          position: { lat: place.lat, lng: place.lng },
-          map,
-          title: place.name,
-          icon,
-        })
-
-        marker.addListener('click', () => {
-          scrollToCard(place.placeId)
-        })
-
-        markersRef.current.push(marker)
-      }
+      markersRef.current.push(marker)
+      markerLabelsRef.current.push(labelEl)
     })
 
     setLoading(false)
@@ -464,19 +393,14 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
       mapInstanceRef.current.setZoom(15)
 
       if (userMarkerRef.current) {
-        userMarkerRef.current.setPosition(loc)
+        userMarkerRef.current.position = loc
       } else {
-        userMarkerRef.current = new window.google.maps.Marker({
+        const dot = document.createElement('div')
+        dot.innerHTML = '<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" fill="#4285F4" stroke="#fff" stroke-width="2"/></svg>'
+        userMarkerRef.current = new (advancedMarkerClassRef.current)({
           position: loc,
           map: mapInstanceRef.current,
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#4285F4',
-            fillOpacity: 1,
-            strokeColor: '#fff',
-            strokeWeight: 2,
-          },
+          content: dot,
           zIndex: 999,
         })
       }
@@ -517,10 +441,17 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
 
       // Load AdvancedMarkerElement library
       try {
-        const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker')
-        advancedMarkerClassRef.current = AdvancedMarkerElement
+        const markerLib = await window.google.maps.importLibrary('marker')
+        advancedMarkerClassRef.current = markerLib.AdvancedMarkerElement
+        console.log('[trusti] AdvancedMarkerElement loaded via importLibrary')
       } catch (err) {
-        console.warn('Failed to load marker library, falling back to legacy markers:', err)
+        // Fallback: try direct access (loaded via script tag libraries=marker)
+        if (window.google.maps.marker?.AdvancedMarkerElement) {
+          advancedMarkerClassRef.current = window.google.maps.marker.AdvancedMarkerElement
+          console.log('[trusti] AdvancedMarkerElement loaded via direct access')
+        } else {
+          console.warn('[trusti] AdvancedMarkerElement NOT available — falling back to legacy markers:', err)
+        }
       }
 
       let center = DEFAULT_CENTER
@@ -542,6 +473,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         center,
         zoom: 15,
         mapId: 'c35383f740cf2c5bd706182f',
+        colorScheme: 'DARK',
         disableDefaultUI: true,
         zoomControl: true,
         gestureHandling: 'greedy',
@@ -549,23 +481,19 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        styles: MAP_STYLE,
       })
 
       mapInstanceRef.current = map
+      console.log('[trusti] Map created with mapId: c35383f740cf2c5bd706182f')
+      console.log('[trusti] AdvancedMarker available:', !!advancedMarkerClassRef.current)
 
-      if (center !== DEFAULT_CENTER) {
-        userMarkerRef.current = new window.google.maps.Marker({
+      if (center !== DEFAULT_CENTER && advancedMarkerClassRef.current) {
+        const dot = document.createElement('div')
+        dot.innerHTML = '<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="7" fill="#4285F4" stroke="#fff" stroke-width="2"/></svg>'
+        userMarkerRef.current = new (advancedMarkerClassRef.current)({
           position: center,
           map,
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#4285F4',
-            fillOpacity: 1,
-            strokeColor: '#fff',
-            strokeWeight: 2,
-          },
+          content: dot,
           zIndex: 999,
         })
       }
@@ -656,6 +584,14 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, searchKeyword, filter])
+
+  // Re-search when Firebase data (trustiRecs/bookmarks) arrives after map is ready
+  useEffect(() => {
+    if (!mapReady || !mapInstanceRef.current) return
+    const c = mapInstanceRef.current.getCenter()
+    searchAtLocationRef.current?.({ lat: c.lat(), lng: c.lng() }, searchKeywordRef.current || '')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, trustiRecs, bookmarks])
 
   return (
     <div className="flex flex-col h-full">
