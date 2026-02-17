@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Share2, X, Plus, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react'
+import { Search, Share2, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import {
   searchUsers, followUser, unfollowUser, isFollowing,
-  getFollowingProfiles, getTrusti9, addToTrusti9, removeFromTrusti9
+  getFollowingProfiles, getTrusti9
 } from '../services/firestore'
 
 export default function SearchPage() {
@@ -18,7 +18,8 @@ export default function SearchPage() {
   const [friends, setFriends] = useState([])
   const [trusti9Ids, setTrusti9Ids] = useState([])
   const [loadingFriends, setLoadingFriends] = useState(true)
-  const [showContacts, setShowContacts] = useState(false)
+  const [showFriends, setShowFriends] = useState(true)
+  const [friendsFilter, setFriendsFilter] = useState('')
 
   // Load friends and trusti9
   const loadData = useCallback(async () => {
@@ -86,38 +87,11 @@ export default function SearchPage() {
   async function handleRemoveContact(targetUid) {
     setLoadingActions(prev => ({ ...prev, [targetUid]: true }))
     try {
-      // Also remove from trusti9 if they're in it
-      if (trusti9Ids.includes(targetUid)) {
-        await removeFromTrusti9(user.uid, targetUid)
-      }
       await unfollowUser(user.uid, targetUid)
       setFollowingMap(prev => ({ ...prev, [targetUid]: false }))
       await loadData()
     } catch (err) {
       console.error('Unfollow failed:', err)
-    }
-    setLoadingActions(prev => ({ ...prev, [targetUid]: false }))
-  }
-
-  async function handlePromoteToTrusti9(targetUid) {
-    if (trusti9Ids.length >= 9) return
-    setLoadingActions(prev => ({ ...prev, [targetUid]: true }))
-    try {
-      await addToTrusti9(user.uid, targetUid)
-      setTrusti9Ids(prev => [...prev, targetUid])
-    } catch (err) {
-      console.error('Add to trusti9 failed:', err)
-    }
-    setLoadingActions(prev => ({ ...prev, [targetUid]: false }))
-  }
-
-  async function handleDemoteFromTrusti9(targetUid) {
-    setLoadingActions(prev => ({ ...prev, [targetUid]: true }))
-    try {
-      await removeFromTrusti9(user.uid, targetUid)
-      setTrusti9Ids(prev => prev.filter(id => id !== targetUid))
-    } catch (err) {
-      console.error('Remove from trusti9 failed:', err)
     }
     setLoadingActions(prev => ({ ...prev, [targetUid]: false }))
   }
@@ -151,12 +125,21 @@ export default function SearchPage() {
     }
   }
 
-  // Split friends into trusti9 and contacts
+  // Split friends into trusti9 and others
   const trusti9Set = new Set(trusti9Ids)
   const trusti9Friends = friends.filter(f => trusti9Set.has(f.id))
   const contactFriends = friends.filter(f => !trusti9Set.has(f.id))
   const friendIds = new Set(friends.map(f => f.id))
   const filteredResults = userResults.filter(u => !friendIds.has(u.uid))
+
+  // Filter "all trusti friends" by local search
+  const filteredContactFriends = friendsFilter
+    ? contactFriends.filter(f =>
+        f.displayName?.toLowerCase().includes(friendsFilter.toLowerCase())
+      )
+    : contactFriends
+
+  // Build ordered trusti 9 grid: filled slots in order, then empties to fill 9
   const emptySlots = 9 - trusti9Friends.length
 
   return (
@@ -166,7 +149,7 @@ export default function SearchPage() {
           <Link to="/" className="text-slate-400 hover:text-white transition-colors">
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-xl font-bold text-white">People</h1>
+          <h1 className="text-xl font-bold text-white">trusti friends</h1>
         </div>
         <button
           onClick={handleInvite}
@@ -177,18 +160,18 @@ export default function SearchPage() {
         </button>
       </div>
 
-      {/* Trusti 9 */}
+      {/* Section 1: My Trusti 9 — fixed 3x3 grid */}
       <div className="mb-5">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-            My Trusti 9
+            my trusti 9
           </h2>
           <span className="text-xs text-slate-400">{trusti9Friends.length}/9</span>
         </div>
 
         {loadingFriends ? (
           <div className="grid grid-cols-3 gap-2">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
               <div key={i} className="bg-slate-800 rounded-xl p-3 animate-pulse flex flex-col items-center gap-2">
                 <div className="w-12 h-12 rounded-full bg-slate-700" />
                 <div className="h-3 bg-slate-700 rounded w-16" />
@@ -198,73 +181,75 @@ export default function SearchPage() {
         ) : (
           <div className="grid grid-cols-3 gap-2">
             {trusti9Friends.map(friend => (
-              <div key={friend.id} className="bg-slate-800 rounded-xl p-3 flex flex-col items-center relative group">
-                <button
-                  onClick={() => handleDemoteFromTrusti9(friend.id)}
-                  disabled={loadingActions[friend.id]}
-                  className="absolute top-1.5 right-1.5 p-1 text-slate-400 hover:text-red-500 hover:bg-slate-700 rounded-full transition-colors opacity-0 group-hover:opacity-100"
-                  title="Move back to contacts"
-                >
-                  <X size={12} />
-                </button>
-                <Link to={`/user/${friend.id}`} className="flex flex-col items-center gap-1.5">
-                  <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium text-slate-400 overflow-hidden ring-2 ring-green-500 ring-offset-1 ring-offset-slate-800">
-                    {friend.photoURL ? (
-                      <img src={friend.photoURL} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      friend.displayName?.[0]?.toUpperCase()
-                    )}
-                  </div>
-                  <p className="text-xs font-medium text-white truncate max-w-[80px] text-center">
-                    {friend.displayName?.split(' ')[0]}
-                  </p>
-                </Link>
+              <Link
+                key={friend.id}
+                to={`/user/${friend.id}`}
+                className="bg-slate-800 rounded-xl p-3 flex flex-col items-center"
+              >
+                <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium text-slate-400 overflow-hidden ring-2 ring-green-500 ring-offset-1 ring-offset-slate-800">
+                  {friend.photoURL ? (
+                    <img src={friend.photoURL} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    friend.displayName?.[0]?.toUpperCase()
+                  )}
+                </div>
+                <p className="text-xs font-medium text-white truncate max-w-[80px] text-center mt-1.5">
+                  {friend.displayName?.split(' ')[0]}
+                </p>
+              </Link>
+            ))}
+            {/* Empty slots to always show 9 total */}
+            {Array.from({ length: emptySlots }).map((_, i) => (
+              <div
+                key={`empty-${i}`}
+                className="border-2 border-dashed border-slate-700 rounded-xl p-3 flex flex-col items-center"
+              >
+                <div className="w-12 h-12 rounded-full bg-slate-800/50" />
+                <p className="text-xs text-slate-600 mt-1.5">&nbsp;</p>
               </div>
             ))}
-            {/* Empty slots */}
-            {emptySlots > 0 && (
-              <button
-                onClick={() => setShowContacts(true)}
-                className="bg-slate-800/50 border-2 border-dashed border-slate-700 rounded-xl p-3 flex flex-col items-center gap-1.5 hover:border-green-500 hover:bg-slate-700/50 transition-colors"
-              >
-                <div className="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center">
-                  <Plus size={20} className="text-slate-400" />
-                </div>
-                <p className="text-xs text-slate-400">Add</p>
-              </button>
-            )}
           </div>
-        )}
-
-        {!loadingFriends && trusti9Friends.length === 0 && (
-          <p className="text-xs text-slate-400 mt-2 text-center">
-            Add up to 9 trusted people whose restaurant reviews you'll see
-          </p>
         )}
       </div>
 
-      {/* Contacts (collapsible) */}
+      {/* Section 2: All Trusti Friends — collapsible with filter */}
       <div className="mb-5">
         <button
-          onClick={() => setShowContacts(!showContacts)}
+          onClick={() => setShowFriends(!showFriends)}
           className="flex items-center justify-between w-full mb-2"
         >
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-            Contacts {contactFriends.length > 0 && `(${contactFriends.length})`}
+            all trusti friends {contactFriends.length > 0 && `(${contactFriends.length})`}
           </h2>
-          {showContacts ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+          {showFriends ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
         </button>
 
-        {showContacts && (
-          <div className="space-y-1">
-            {contactFriends.length === 0 && !loadingFriends && (
-              <p className="text-xs text-slate-400 text-center py-3">
-                No contacts outside your Trusti 9. Search below to add people!
-              </p>
+        {showFriends && (
+          <div>
+            {contactFriends.length > 3 && (
+              <div className="relative mb-2">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Filter friends..."
+                  value={friendsFilter}
+                  onChange={(e) => setFriendsFilter(e.target.value)}
+                  className="w-full pl-8 pr-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
             )}
-            {contactFriends.map(friend => (
-              <div key={friend.id} className="flex items-center gap-3 p-2.5 bg-slate-800 rounded-xl">
-                <Link to={`/user/${friend.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              {filteredContactFriends.length === 0 && !loadingFriends && (
+                <p className="text-xs text-slate-400 text-center py-3">
+                  {friendsFilter ? 'No matching friends' : 'No friends outside your trusti 9. Search below to add people!'}
+                </p>
+              )}
+              {filteredContactFriends.map(friend => (
+                <Link
+                  key={friend.id}
+                  to={`/user/${friend.id}`}
+                  className="flex items-center gap-3 p-2.5 bg-slate-800 rounded-xl"
+                >
                   <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-400 overflow-hidden shrink-0">
                     {friend.photoURL ? (
                       <img src={friend.photoURL} alt="" className="w-full h-full object-cover" />
@@ -274,34 +259,15 @@ export default function SearchPage() {
                   </div>
                   <p className="text-sm text-white truncate">{friend.displayName}</p>
                 </Link>
-                <div className="flex items-center gap-1 shrink-0">
-                  {trusti9Ids.length < 9 && (
-                    <button
-                      onClick={() => handlePromoteToTrusti9(friend.id)}
-                      disabled={loadingActions[friend.id]}
-                      className="px-2 py-1 text-xs font-medium text-green-500 hover:bg-slate-700 rounded-lg transition-colors"
-                    >
-                      + Trusti
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleRemoveContact(friend.id)}
-                    disabled={loadingActions[friend.id]}
-                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
-                    title="Remove contact"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Search to add contacts */}
+      {/* Section 3: Find People */}
       <div>
-        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Find People</h2>
+        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">find people</h2>
         <div className="relative mb-3">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input

@@ -80,6 +80,18 @@ export default function HomePage() {
     loadBookmarks()
   }, [loadRecs, loadBookmarks])
 
+  // Re-fetch when page becomes visible again (e.g. after editing trusti 9)
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === 'visible') {
+        loadRecs()
+        loadBookmarks()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [loadRecs, loadBookmarks])
+
   function handlePlaceSelect(place) {
     setSelectedPlace(place)
   }

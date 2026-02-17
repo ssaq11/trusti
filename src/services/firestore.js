@@ -219,13 +219,13 @@ export async function getTrusti9(uid) {
 export async function addToTrusti9(uid, targetUid) {
   const current = await getTrusti9(uid)
   if (current.length >= 9 || current.includes(targetUid)) return false
-  await updateDoc(doc(db, 'users', uid), { trusti9: [...current, targetUid] })
+  await setDoc(doc(db, 'users', uid), { trusti9: [...current, targetUid] }, { merge: true })
   return true
 }
 
 export async function removeFromTrusti9(uid, targetUid) {
   const current = await getTrusti9(uid)
-  await updateDoc(doc(db, 'users', uid), { trusti9: current.filter(id => id !== targetUid) })
+  await setDoc(doc(db, 'users', uid), { trusti9: current.filter(id => id !== targetUid) }, { merge: true })
 }
 
 // --- ACCESS CONTROL ---

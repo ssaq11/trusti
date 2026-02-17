@@ -3,7 +3,7 @@ import { Home, Users, User } from 'lucide-react'
 
 const tabs = [
   { path: '/', icon: Home, label: 'Feed' },
-  { path: '/search', icon: Users, label: 'People' },
+  { path: '/search', icon: Users, label: 'Friends' },
   { path: '/profile', icon: User, label: 'Profile' },
 ]
 

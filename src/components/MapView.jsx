@@ -680,7 +680,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
       </div>
 
       {/* Nearby places list - scrollable, 2.5 cards visible on mobile, full on desktop */}
-      <div ref={listRef} className="mt-2 overflow-y-auto shrink-0 max-md:h-[190px] md:h-[214px]">
+      <div ref={listRef} className="mt-2 overflow-y-auto shrink-0 max-md:h-[210px] md:h-[214px]">
         {loading && places.length === 0 && (
           <div className="space-y-2">
             {[1, 2, 3].map(i => (
