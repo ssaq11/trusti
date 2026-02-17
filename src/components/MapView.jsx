@@ -162,28 +162,31 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     const el = document.createElement('div')
     el.className = 'trusti-select-pin'
     el.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;'
-    // Realistic highlighter marker circle with feathered edges, irregular thickness, and overrun tail
-    el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+    // Realistic highlighter marker circle — just slightly bigger than the dot, with feathered edges and overrun tail
+    el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="28" viewBox="0 0 26 28">
       <defs>
         <filter id="hlBleed" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" />
         </filter>
         <filter id="hlSharp" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" />
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0.35" />
         </filter>
       </defs>
       <!-- Outer bleed / feathered glow -->
-      <path d="M22 4 C28 3, 35 7, 38 13 C41 19, 40 27, 36 32 C32 37, 25 40, 19 39 C13 38, 7 34, 5 28 C3 22, 4 14, 8 9 C12 4.5, 17 3.5, 22 4"
-            fill="none" stroke="#FFA500" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.18" filter="url(#hlBleed)"/>
+      <path d="M13 2.5 C17 1.8, 21.5 4, 23 7.5 C24.5 11, 24 15.5, 22 18.5 C20 21.5, 16 23, 12.5 22.5 C9 22, 5.5 19.5, 4 16 C2.5 12.5, 3 8, 5.5 5.5 C8 3, 10.5 2.5, 13 2.5"
+            fill="none" stroke="#FFA500" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.18" filter="url(#hlBleed)"/>
       <!-- Mid layer — semi-transparent irregular stroke -->
-      <path d="M22 5.5 C27 4.5, 34 8, 37 13.5 C40 19, 39 26, 35.5 31 C32 35.5, 26 38.5, 20 38 C14 37.5, 8 33.5, 5.5 28 C3.5 22.5, 4.5 15, 8.5 10 C12 5.5, 17.5 4.5, 22 5.5"
-            fill="none" stroke="#FF8C42" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.45" filter="url(#hlSharp)"/>
+      <path d="M13 3.5 C16.5 2.8, 21 4.5, 22.5 7.5 C24 10.5, 23.5 15, 21.5 18 C19.5 21, 16 22.5, 12.5 22 C9 21.5, 5.5 19, 4.5 16 C3.5 13, 3.5 8.5, 6 5.5 C8 3.5, 10.5 3, 13 3.5"
+            fill="none" stroke="#FF8C42" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.45" filter="url(#hlSharp)"/>
       <!-- Core stroke — brighter, thinner in places -->
-      <path d="M21.5 5 C27.5 4, 34.5 7.5, 37.5 13 C40.5 18.5, 39.5 26.5, 36 31.5 C32.5 36, 25.5 39, 19.5 38.5 C13.5 38, 7.5 34, 5 28.5 C3 23, 4 14.5, 8 9.5 C11.5 5, 17 4, 21.5 5"
-            fill="none" stroke="#FFA500" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
-      <!-- Overrun tail — stroke overshoots past the start point -->
-      <path d="M21.5 5 C24 4.2, 27 3.8, 29.5 4.5"
-            fill="none" stroke="#FFA500" stroke-width="2.2" stroke-linecap="round" opacity="0.55" filter="url(#hlSharp)"/>
+      <path d="M12.5 3 C16.5 2.2, 21 4.5, 22.5 8 C24 11.5, 23.5 15.5, 21.5 18.5 C19.5 21, 15.5 23, 12 22.5 C8.5 22, 5.5 19, 4 15.5 C2.5 12, 3.5 8, 6 5.5 C8 3.2, 10.5 2.5, 12.5 3"
+            fill="none" stroke="#FFA500" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+      <!-- Overrun tail — overshoots past start and curves inward into the dot -->
+      <path d="M12.5 3 C15 2.3, 17.5 2.2, 19.5 3 C21 3.8, 22 5, 21.5 6.5 C21 8, 19 9.5, 16 10.5"
+            fill="none" stroke="#FFA500" stroke-width="1.8" stroke-linecap="round" opacity="0.6" filter="url(#hlSharp)"/>
+      <!-- Extra tail glow for visibility -->
+      <path d="M12.5 3 C15 2.3, 17.5 2.2, 19.5 3 C21 3.8, 22 5, 21.5 6.5 C21 8, 19 9.5, 16 10.5"
+            fill="none" stroke="#FF8C42" stroke-width="3" stroke-linecap="round" opacity="0.2" filter="url(#hlBleed)"/>
     </svg>`
     marker.content.appendChild(el)
 
