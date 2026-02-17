@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, Clock, Menu, X } from 'lucide-react'
+import { Search, Clock, Menu, X, Users, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords } from '../services/firestore'
@@ -229,29 +229,31 @@ export default function HomePage() {
       {menuOpen && (
         <div className="absolute inset-0 z-50 flex overflow-hidden">
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60" onClick={() => setMenuOpen(false)} />
-          {/* Panel — 60% of app width */}
-          <div className="relative w-[60%] max-w-[260px] bg-slate-900 h-full shadow-xl flex flex-col animate-[slideIn_0.2s_ease-out]">
-            <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-800">
-              <span className="text-white font-medium text-lg" style={{ fontFamily: "'Quicksand', sans-serif" }}>Menu</span>
-              <button onClick={() => setMenuOpen(false)} className="text-slate-400 hover:text-white">
-                <X size={20} />
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
+          {/* Panel — positioned to start at the same top as hamburger button */}
+          <div className="absolute left-0 z-50 w-[60%] max-w-[260px] bg-slate-900/85 backdrop-blur-sm shadow-xl rounded-b-xl animate-[slideIn_0.2s_ease-out]"
+               style={{ top: 'calc(0.75rem + 1.4rem + 0.25rem + 0.5rem)' }}>
+            <div className="flex items-center px-4 pt-3 pb-2">
+              <button onClick={() => setMenuOpen(false)} className="p-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-white backdrop-blur-sm shrink-0">
+                <X size={18} />
               </button>
             </div>
-            <nav className="flex-1 px-4 py-4 space-y-1">
+            <nav className="px-4 pb-4 space-y-1">
               <Link
                 to="/search"
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors no-underline"
               >
-                People
+                <Users size={18} />
+                trusti friends
               </Link>
               <Link
                 to="/profile"
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors no-underline"
               >
-                Profile
+                <User size={18} />
+                profile
               </Link>
             </nav>
           </div>
