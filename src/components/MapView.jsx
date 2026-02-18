@@ -168,11 +168,13 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     dotEl.style.transform = 'scale(1.25)'
     dotEl.style.position = 'relative'
 
-    // Add a border ring — orange for grey/unreviewed, white for colored/reviewed
-    const ringColor = dotEl.dataset.hasReviews ? '#ffffff' : '#FFA500'
+    // Add an orange border ring flush against the dot
+    const svg = dotEl.querySelector('svg')
+    const dotW = svg ? svg.getAttribute('width') : 16
+    const dotH = svg ? svg.getAttribute('height') : 16
     const ring = document.createElement('div')
     ring.className = 'trusti-select-ring'
-    ring.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;border:2.5px solid ${ringColor};pointer-events:none;`
+    ring.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${dotW}px;height:${dotH}px;border-radius:50%;border:2.5px solid #FFA500;pointer-events:none;`
     dotEl.appendChild(ring)
 
     marker.zIndex = 1000
