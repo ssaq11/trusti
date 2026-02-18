@@ -74,6 +74,7 @@ function buildMarkerContent(place, { hasReviews, counts, isBookmarked, isKeyword
   container.style.cssText = 'display:flex;flex-direction:column;align-items:center;'
 
   const dot = document.createElement('div')
+  dot.dataset.hasReviews = hasReviews ? '1' : ''
   if (hasReviews) {
     dot.innerHTML = buildReviewDotSvg(counts)
   } else if (isBookmarked) {
@@ -143,13 +144,15 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
   const [locating, setLocating] = useState(false)
   const [selectedPlaceId, setSelectedPlaceId] = useState(null)
 
-  // Highlight the selected marker — scale up + orange ring
+  // Highlight the selected marker — scale up dot + border ring
   useEffect(() => {
-    // Reset previous selection
+    // Reset all markers
     markersRef.current.forEach(m => {
-      if (m.content) {
-        m.content.style.transform = ''
-        m.content.style.filter = ''
+      const dotEl = m.content?.firstChild
+      if (dotEl) {
+        dotEl.style.transform = ''
+        const ring = dotEl.querySelector('.trusti-select-ring')
+        if (ring) ring.remove()
       }
     })
 
@@ -158,12 +161,21 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     const idx = places.findIndex(p => p.placeId === selectedPlaceId)
     if (idx === -1) return
     const marker = markersRef.current[idx]
-    if (!marker?.content) return
+    const dotEl = marker?.content?.firstChild
+    if (!dotEl) return
 
-    marker.content.style.transform = 'scale(1.25)'
-    marker.content.style.filter = 'drop-shadow(0 0 3px #FFA500) drop-shadow(0 0 6px #FFA500)'
+    // Scale up the dot only (not the label)
+    dotEl.style.transform = 'scale(1.25)'
+    dotEl.style.position = 'relative'
+
+    // Add a border ring — orange for grey/unreviewed, white for colored/reviewed
+    const ringColor = dotEl.dataset.hasReviews ? '#ffffff' : '#FFA500'
+    const ring = document.createElement('div')
+    ring.className = 'trusti-select-ring'
+    ring.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;border:2.5px solid ${ringColor};pointer-events:none;`
+    dotEl.appendChild(ring)
+
     marker.zIndex = 1000
-
     return () => { marker.zIndex = null }
   }, [selectedPlaceId, places])
 
