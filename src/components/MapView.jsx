@@ -174,7 +174,7 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     const dotH = svg ? svg.getAttribute('height') : 16
     const ring = document.createElement('div')
     ring.className = 'trusti-select-ring'
-    ring.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${dotW}px;height:${dotH}px;border-radius:50%;border:2.5px solid #FFA500;pointer-events:none;`
+    ring.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${dotW}px;height:${dotH}px;border-radius:50%;border:2.5px solid #FFB833;pointer-events:none;`
     dotEl.appendChild(ring)
 
     marker.zIndex = 1000
