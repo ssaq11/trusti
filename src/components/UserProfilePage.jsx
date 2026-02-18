@@ -60,12 +60,12 @@ export default function UserProfilePage() {
           setTrusti9Ids(prev => prev.filter(id => id !== userId))
         }
         await unfollowUser(user.uid, userId)
-        setFollowing(false)
-        setProfile(prev => prev ? { ...prev, followersCount: (prev.followersCount || 1) - 1 } : prev)
+        navigate('/search')
+        return
       } else {
         await followUser(user.uid, userId)
-        setFollowing(true)
-        setProfile(prev => prev ? { ...prev, followersCount: (prev.followersCount || 0) + 1 } : prev)
+        navigate('/search')
+        return
       }
     } catch (err) {
       console.error('Follow/unfollow failed:', err)
@@ -78,11 +78,11 @@ export default function UserProfilePage() {
     try {
       const success = await addToTrusti9(user.uid, userId)
       if (success) {
-        setTrusti9Ids(prev => [...prev, userId])
-      } else {
-        const fresh = await getTrusti9(user.uid)
-        setTrusti9Ids(fresh)
+        navigate('/search')
+        return
       }
+      const fresh = await getTrusti9(user.uid)
+      setTrusti9Ids(fresh)
     } catch (err) {
       console.error('Add to trusti9 failed:', err)
     }
@@ -93,8 +93,8 @@ export default function UserProfilePage() {
     setTrusti9Loading(true)
     try {
       await removeFromTrusti9(user.uid, userId)
-      const fresh = await getTrusti9(user.uid)
-      setTrusti9Ids(fresh)
+      navigate('/search')
+      return
     } catch (err) {
       console.error('Remove from trusti9 failed:', err)
     }
@@ -119,9 +119,8 @@ export default function UserProfilePage() {
     try {
       await removeFromTrusti9(user.uid, removeId)
       await addToTrusti9(user.uid, userId)
-      const fresh = await getTrusti9(user.uid)
-      setTrusti9Ids(fresh)
-      setShowSwapUI(false)
+      navigate('/search')
+      return
     } catch (err) {
       console.error('Swap failed:', err)
     }
