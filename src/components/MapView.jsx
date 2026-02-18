@@ -143,12 +143,14 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
   const [locating, setLocating] = useState(false)
   const [selectedPlaceId, setSelectedPlaceId] = useState(null)
 
-  // Highlight the selected marker with a hand-drawn circle
+  // Highlight the selected marker — scale up + orange ring
   useEffect(() => {
-    // Remove previous highlights
+    // Reset previous selection
     markersRef.current.forEach(m => {
-      const el = m.content?.querySelector('.trusti-select-pin')
-      if (el) el.remove()
+      if (m.content) {
+        m.content.style.transform = ''
+        m.content.style.filter = ''
+      }
     })
 
     if (!selectedPlaceId) return
@@ -158,39 +160,10 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
     const marker = markersRef.current[idx]
     if (!marker?.content) return
 
-    marker.content.style.position = 'relative'
-    const el = document.createElement('div')
-    el.className = 'trusti-select-pin'
-    el.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;'
-    // Realistic highlighter marker circle — just slightly bigger than the dot, with feathered edges and overrun tail
-    el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="28" viewBox="0 0 26 28">
-      <defs>
-        <filter id="hlBleed" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" />
-        </filter>
-        <filter id="hlSharp" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.35" />
-        </filter>
-      </defs>
-      <!-- Outer bleed / feathered glow -->
-      <path d="M13 2.5 C17 1.8, 21.5 4, 23 7.5 C24.5 11, 24 15.5, 22 18.5 C20 21.5, 16 23, 12.5 22.5 C9 22, 5.5 19.5, 4 16 C2.5 12.5, 3 8, 5.5 5.5 C8 3, 10.5 2.5, 13 2.5"
-            fill="none" stroke="#FFA500" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.18" filter="url(#hlBleed)"/>
-      <!-- Mid layer — semi-transparent irregular stroke -->
-      <path d="M13 3.5 C16.5 2.8, 21 4.5, 22.5 7.5 C24 10.5, 23.5 15, 21.5 18 C19.5 21, 16 22.5, 12.5 22 C9 21.5, 5.5 19, 4.5 16 C3.5 13, 3.5 8.5, 6 5.5 C8 3.5, 10.5 3, 13 3.5"
-            fill="none" stroke="#FF8C42" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.45" filter="url(#hlSharp)"/>
-      <!-- Core stroke — brighter, thinner in places -->
-      <path d="M12.5 3 C16.5 2.2, 21 4.5, 22.5 8 C24 11.5, 23.5 15.5, 21.5 18.5 C19.5 21, 15.5 23, 12 22.5 C8.5 22, 5.5 19, 4 15.5 C2.5 12, 3.5 8, 6 5.5 C8 3.2, 10.5 2.5, 12.5 3"
-            fill="none" stroke="#FFA500" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
-      <!-- Overrun tail — overshoots past start and curves inward into the dot -->
-      <path d="M12.5 3 C15 2.3, 17.5 2.2, 19.5 3 C21 3.8, 22 5, 21.5 6.5 C21 8, 19 9.5, 16 10.5"
-            fill="none" stroke="#FFA500" stroke-width="1.8" stroke-linecap="round" opacity="0.6" filter="url(#hlSharp)"/>
-      <!-- Extra tail glow for visibility -->
-      <path d="M12.5 3 C15 2.3, 17.5 2.2, 19.5 3 C21 3.8, 22 5, 21.5 6.5 C21 8, 19 9.5, 16 10.5"
-            fill="none" stroke="#FF8C42" stroke-width="3" stroke-linecap="round" opacity="0.2" filter="url(#hlBleed)"/>
-    </svg>`
-    marker.content.appendChild(el)
-
+    marker.content.style.transform = 'scale(1.25)'
+    marker.content.style.filter = 'drop-shadow(0 0 3px #FFA500) drop-shadow(0 0 6px #FFA500)'
     marker.zIndex = 1000
+
     return () => { marker.zIndex = null }
   }, [selectedPlaceId, places])
 
