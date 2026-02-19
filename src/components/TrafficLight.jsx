@@ -23,9 +23,10 @@ export default function TrafficLight({ activeColors = [], size = 'sm', direction
         flexDirection: direction,
         alignItems: 'center',
         gap,
-        background: '#000',
+        background: 'radial-gradient(ellipse at 18% 22%, rgba(160,210,255,0.22) 0%, #000 62%)',
         borderRadius: r,
         padding: `${py}px ${px}px`,
+        boxShadow: 'inset 1px 1px 3px rgba(180,220,255,0.1)',
         flexShrink: 0,
       }}
     >
