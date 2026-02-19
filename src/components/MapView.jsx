@@ -904,14 +904,13 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
 
                   {/* Traffic light — horizontal, hanging from top-right corner */}
                   <div
-                    style={{ position: 'absolute', top: 0, right: 0, zIndex: 2 }}
+                    style={{ position: 'absolute', top: 4, right: 0, zIndex: 2 }}
                     onClick={e => e.stopPropagation()}
                   >
                     <TrafficLight
                       activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
                       size="card-h"
                       direction="row"
-                      hang
                       onColorClick={(color) =>
                         onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: color })
                       }

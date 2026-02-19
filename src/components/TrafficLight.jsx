@@ -8,7 +8,7 @@ const SIZES = {
   sm:       { circle: 10, gap: 3, px: 5, py: 5,  r: 7  },
   md:       { circle: 13, gap: 4, px: 6, py: 6,  r: 9  },
   card:     { circle: 16, gap: 4, px: 5, py: 5,  r: 9  },
-  'card-h': { circle: 18, gap: 5, px: 6, py: 3,  r: 10 },
+  'card-h': { circle: 22, gap: 6, px: 7, py: 4,  r: 12 },
   lg:       { circle: 20, gap: 6, px: 8, py: 9,  r: 11 },
 }
 
