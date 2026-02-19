@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Trash2 } from 'lucide-react'
+import TrafficLight from './TrafficLight'
 
 const RATING_CONFIG = {
   red: { bg: 'bg-red-500', ring: 'ring-red-200', label: "Don't go", textColor: 'text-red-600' },
@@ -16,7 +17,7 @@ export default function RecommendationCard({ rec, showUser = true, onDelete }) {
   return (
     <div className="bg-slate-800 rounded-xl shadow-sm p-4 mb-3">
       <div className="flex items-start gap-3">
-        <div className={`mt-1 w-5 h-5 rounded-full ${rating.bg} ring-4 ${rating.ring} shrink-0`} />
+        <TrafficLight activeColors={[rec.rating]} />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div>

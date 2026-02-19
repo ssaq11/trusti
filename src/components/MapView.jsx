@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Navigation, RefreshCw, ChevronRight } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
+import TrafficLight from './TrafficLight'
 
 const DEFAULT_CENTER = { lat: 30.2672, lng: -97.7431 } // Austin, TX fallback
 const TRUSTI_COLORS = { red: '#ef4444', yellow: '#eab308', green: '#22c55e' }
@@ -748,25 +749,9 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {hasReviews && (
-                        <div className="flex items-center gap-1">
-                          {['green', 'yellow', 'red'].map(color => {
-                            if (counts[color] === 0) return null
-                            const bgClass = color === 'green' ? 'bg-green-500' :
-                                            color === 'yellow' ? 'bg-yellow-400' : 'bg-red-500'
-                            return (
-                              <div
-                                key={color}
-                                className={`w-5 h-5 rounded-full ${bgClass} flex items-center justify-center`}
-                              >
-                                {counts[color] > 1 && (
-                                  <span className="text-white text-[9px] font-bold">{counts[color]}</span>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
+                      <TrafficLight
+                        activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
+                      />
                       {isBookmarked && (
                         <span className="text-purple-500 text-sm" title="Want to go">★</span>
                       )}
