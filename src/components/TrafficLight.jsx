@@ -1,7 +1,7 @@
 const LIGHTS = [
-  { color: 'red',    on: '#ef4444', glow: 'rgba(239, 68, 68, 0.65)',  dim: 'rgba(239, 68, 68, 0.15)' },
-  { color: 'yellow', on: '#facc15', glow: 'rgba(250, 204, 21, 0.65)', dim: 'rgba(250, 204, 21, 0.15)' },
-  { color: 'green',  on: '#22c55e', glow: 'rgba(34, 197, 94, 0.65)',  dim: 'rgba(34, 197, 94, 0.15)' },
+  { color: 'red',    on: '#ef4444', glow: 'rgba(239, 68, 68, 0.65)',  dim: 'rgba(239, 68, 68, 0.28)' },
+  { color: 'yellow', on: '#facc15', glow: 'rgba(250, 204, 21, 0.65)', dim: 'rgba(250, 204, 21, 0.28)' },
+  { color: 'green',  on: '#22c55e', glow: 'rgba(34, 197, 94, 0.65)',  dim: 'rgba(34, 197, 94, 0.28)' },
 ]
 
 const SIZES = {
@@ -23,16 +23,9 @@ export default function TrafficLight({ activeColors = [], size = 'sm', direction
         flexDirection: direction,
         alignItems: 'center',
         gap,
-        background: '#0b1120',
-        borderTopLeftRadius: hang ? 0 : r,
-        borderTopRightRadius: hang ? 0 : r,
-        borderBottomLeftRadius: r,
-        borderBottomRightRadius: r,
+        background: '#000',
+        borderRadius: r,
         padding: `${py}px ${px}px`,
-        borderLeft: '1px solid rgba(255,255,255,0.22)',
-        borderRight: '1px solid rgba(255,255,255,0.22)',
-        borderBottom: '1px solid rgba(255,255,255,0.22)',
-        borderTop: hang ? 'none' : '1px solid rgba(255,255,255,0.22)',
         flexShrink: 0,
       }}
     >
@@ -47,7 +40,7 @@ export default function TrafficLight({ activeColors = [], size = 'sm', direction
               height: circle,
               borderRadius: '50%',
               backgroundColor: isOn ? on : dim,
-              boxShadow: isOn ? `0 0 8px 3px ${glow}` : 'none',
+              boxShadow: isOn ? `0 0 8px 3px ${glow}` : 'inset 0 1px 2px rgba(255,255,255,0.18)',
               cursor: onColorClick ? 'pointer' : 'default',
             }}
           />

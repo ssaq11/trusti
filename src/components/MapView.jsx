@@ -840,7 +840,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                         <span style={{ minWidth: 0 }}>{place.name}</span>
                         {isBookmarked && <span style={{ color: '#a78bfa', fontSize: 10, flexShrink: 0 }}>★</span>}
                       </div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, wordBreak: 'break-word', lineHeight: 1.3 }}>{place.address}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, wordBreak: 'break-word', lineHeight: 1.3 }}>{place.address?.split(',').slice(0, 2).join(',').trim()}</div>
                       {cuisinePriceMeta && (
                         <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{cuisinePriceMeta}</div>
                       )}
