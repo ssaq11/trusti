@@ -197,6 +197,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   const [locating, setLocating] = useState(false)
   const [selectedPlaceId, setSelectedPlaceId] = useState(null)
   const [intentModal, setIntentModal] = useState(null) // null | { place, type }
+  const [review, setReview] = useState(null) // null | { placeId, type:'light'|'flag', value, visible }
+  const cardRefs = useRef({})
 
   // Highlight the selected marker — scale up dot + border ring
   useEffect(() => {
@@ -646,6 +648,12 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
         }, 600)
       })
 
+      // Tap on map dismisses the inline review banner
+      map.addListener('click', () => {
+        setReview(r => r ? { ...r, visible: false } : null)
+        setTimeout(() => setReview(null), 220)
+      })
+
       if (mounted) {
         setMapReady(true)
         setLoading(false)
@@ -713,6 +721,53 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
     searchAtLocationRef.current?.({ lat: c.lat(), lng: c.lng() }, searchKeywordRef.current || '')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, trustiRecs, bookmarks])
+
+  // Dismiss review banner when card list is scrolled
+  useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+    const onScroll = () => {
+      setReview(r => r ? { ...r, visible: false } : null)
+      setTimeout(() => setReview(null), 220)
+    }
+    list.addEventListener('scroll', onScroll, { passive: true })
+    return () => list.removeEventListener('scroll', onScroll)
+  }, [])
+
+  function openReview(place, type, value) {
+    if (review?.placeId === place.placeId && review?.type === type && review?.value === value) {
+      // Same element tapped again — deselect and close
+      setReview(r => r ? { ...r, visible: false } : null)
+      setTimeout(() => setReview(null), 220)
+      return
+    }
+    if (review?.placeId === place.placeId) {
+      // Same card, different pick — update label in place, no re-animation
+      setReview(r => r ? { ...r, type, value } : null)
+      return
+    }
+    // New card — slide banner up
+    setReview({ placeId: place.placeId, type, value, visible: false })
+    setTimeout(() => setReview(r => r ? { ...r, visible: true } : null), 10)
+  }
+
+  function closeReview() {
+    setReview(r => r ? { ...r, visible: false } : null)
+    setTimeout(() => setReview(null), 220)
+  }
+
+  async function postReview() {
+    if (!review) return
+    const place = places.find(p => p.placeId === review.placeId)
+    if (!place) return
+    const placeData = { placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng }
+    if (review.type === 'light') {
+      await onAddReview?.({ ...placeData, rating: review.value })
+    } else {
+      await onIntentSubmit?.({ place: placeData, type: review.value, note: '' })
+    }
+    closeReview()
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -808,6 +863,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                 <div
                   key={place.placeId}
                   data-place-id={place.placeId}
+                  ref={el => { cardRefs.current[place.placeId] = el }}
                   style={{
                     position: 'relative',
                     display: 'flex',
@@ -873,49 +929,65 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       cursor: 'pointer',
                     }}
                   >
-                    {/* Try / Pass flags — side by side, anchored bottom-left */}
+                    {/* Try / Pass flags — grayed when a light is active */}
                     <div
-                      style={{ position: 'absolute', top: 4, left: 6, display: 'flex', gap: 8 }}
+                      style={{
+                        position: 'absolute', top: 4, left: 6, display: 'flex', gap: 8,
+                        opacity: review?.placeId === place.placeId && review?.type === 'light' ? 0.25 : 1,
+                        transition: 'opacity 0.15s',
+                        pointerEvents: review?.placeId === place.placeId && review?.type === 'light' ? 'none' : 'auto',
+                      }}
                       onClick={e => e.stopPropagation()}
                     >
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setIntentModal({ place: { placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng }, type: 'try' })
-                        }}
-                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(34,197,94,0.12)', border: 'none', cursor: 'pointer', color: '#4ade80' }}
+                        onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'try') }}
+                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: review?.placeId === place.placeId && review?.value === 'try' ? 'rgba(34,197,94,0.3)' : 'rgba(34,197,94,0.12)', border: 'none', cursor: 'pointer', color: '#4ade80', transition: 'background 0.15s' }}
                         title="Want to go"
                       >
                         <Flag size={13} />
                       </button>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setIntentModal({ place: { placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng }, type: 'pass' })
-                        }}
-                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.12)', border: 'none', cursor: 'pointer', color: '#f87171' }}
+                        onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'pass') }}
+                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: review?.placeId === place.placeId && review?.value === 'pass' ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.12)', border: 'none', cursor: 'pointer', color: '#f87171', transition: 'background 0.15s' }}
                         title="I'll pass"
                       >
                         <Ban size={13} />
                       </button>
                     </div>
 
+                    {/* Label under flags */}
+                    {review?.placeId === place.placeId && review?.type === 'flag' && (
+                      <div style={{ position: 'absolute', top: 35, left: 6, width: 60, textAlign: 'center', fontSize: 10, fontWeight: 700, color: review.value === 'try' ? '#4ade80' : '#f87171', pointerEvents: 'none', letterSpacing: '0.02em' }}>
+                        {review.value === 'try' ? 'Want to try' : 'No interest'}
+                      </div>
+                    )}
+
                   </div>
 
-                  {/* Traffic light — horizontal, hanging from top-right corner */}
+                  {/* Traffic light — grayed when a flag is active */}
                   <div
-                    style={{ position: 'absolute', top: 4, right: 6, zIndex: 2 }}
+                    style={{
+                      position: 'absolute', top: 4, right: 6, zIndex: 2,
+                      opacity: review?.placeId === place.placeId && review?.type === 'flag' ? 0.25 : 1,
+                      transition: 'opacity 0.15s',
+                      pointerEvents: review?.placeId === place.placeId && review?.type === 'flag' ? 'none' : 'auto',
+                    }}
                     onClick={e => e.stopPropagation()}
                   >
                     <TrafficLight
                       activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
                       size="card-h"
                       direction="row"
-                      onColorClick={(color) =>
-                        onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: color })
-                      }
+                      onColorClick={(color) => openReview(place, 'light', color)}
                     />
                   </div>
+
+                  {/* Label under traffic light */}
+                  {review?.placeId === place.placeId && review?.type === 'light' && (
+                    <div style={{ position: 'absolute', top: 38, right: 6, width: 92, textAlign: 'center', fontSize: 10, fontWeight: 700, color: review.value === 'green' ? '#4ade80' : review.value === 'yellow' ? '#facc15' : '#f87171', pointerEvents: 'none', letterSpacing: '0.02em' }}>
+                      {review.value === 'green' ? 'Go!' : review.value === 'yellow' ? 'Meh' : 'Pass'}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -934,6 +1006,50 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
           }}
         />
       )}
+
+      {/* Inline review banner — slides up from the active card's top edge */}
+      {review && (() => {
+        const cardEl = cardRefs.current[review.placeId]
+        const rect = cardEl?.getBoundingClientRect()
+        if (!rect) return null
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              left: rect.left,
+              width: rect.width,
+              bottom: window.innerHeight - rect.top,
+              zIndex: 500,
+              transform: review.visible ? 'translateY(0)' : 'translateY(100%)',
+              transition: 'transform 0.22s cubic-bezier(0.2,0,0,1)',
+              pointerEvents: review.visible ? 'auto' : 'none',
+            }}
+          >
+            <div style={{
+              background: '#0d1b33',
+              borderRadius: '10px 10px 0 0',
+              padding: '8px 10px',
+              display: 'flex',
+              gap: 8,
+              alignItems: 'center',
+              boxShadow: '0 -4px 24px rgba(0,0,0,0.55)',
+            }}>
+              <button
+                disabled
+                style={{ flex: 1, padding: '7px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#475569', fontSize: 12, textAlign: 'left', cursor: 'default' }}
+              >
+                Add intel for friends...
+              </button>
+              <button
+                onClick={postReview}
+                style={{ padding: '7px 20px', borderRadius: 7, background: '#2563eb', border: 'none', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+              >
+                Post
+              </button>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
