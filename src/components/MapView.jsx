@@ -827,8 +827,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       flex: '1 1 0',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 10,
-                      padding: '8px',
+                      padding: '8px 10px',
                       textAlign: 'left',
                       background: '#1e293b',
                       border: 'none',
@@ -836,18 +835,11 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       minWidth: 0,
                     }}
                   >
-                    <div style={{ position: 'relative', width: 48, height: 48, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: '#334155' }}>
-                      {place.photoUrl ? (
-                        <img src={place.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: '#64748b' }}>🍽</div>
-                      )}
-                      {isBookmarked && (
-                        <div style={{ position: 'absolute', top: 2, right: 2, color: '#a78bfa', fontSize: 9, lineHeight: 1 }}>★</div>
-                      )}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'white', wordBreak: 'break-word', lineHeight: 1.3 }}>{place.name}</div>
+                    <div style={{ minWidth: 0, width: '100%' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'white', wordBreak: 'break-word', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ minWidth: 0 }}>{place.name}</span>
+                        {isBookmarked && <span style={{ color: '#a78bfa', fontSize: 10, flexShrink: 0 }}>★</span>}
+                      </div>
                       <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, wordBreak: 'break-word', lineHeight: 1.3 }}>{place.address}</div>
                       {cuisinePriceMeta && (
                         <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{cuisinePriceMeta}</div>
@@ -908,10 +900,18 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       </button>
                     </div>
 
-                    {/* Traffic light — card size fills most of card height */}
+                  </div>
+
+                  {/* Traffic light — horizontal, hanging from top-right corner */}
+                  <div
+                    style={{ position: 'absolute', top: 0, right: 0, zIndex: 2 }}
+                    onClick={e => e.stopPropagation()}
+                  >
                     <TrafficLight
                       activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
-                      size="card"
+                      size="card-h"
+                      direction="row"
+                      hang
                       onColorClick={(color) =>
                         onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: color })
                       }

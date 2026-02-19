@@ -5,13 +5,14 @@ const LIGHTS = [
 ]
 
 const SIZES = {
-  sm:   { circle: 10, gap: 3, px: 5, py: 5,  r: 7  },
-  md:   { circle: 13, gap: 4, px: 6, py: 6,  r: 9  },
-  card: { circle: 16, gap: 4, px: 5, py: 5,  r: 9  },
-  lg:   { circle: 20, gap: 6, px: 8, py: 9,  r: 11 },
+  sm:       { circle: 10, gap: 3, px: 5, py: 5,  r: 7  },
+  md:       { circle: 13, gap: 4, px: 6, py: 6,  r: 9  },
+  card:     { circle: 16, gap: 4, px: 5, py: 5,  r: 9  },
+  'card-h': { circle: 18, gap: 5, px: 6, py: 3,  r: 10 },
+  lg:       { circle: 20, gap: 6, px: 8, py: 9,  r: 11 },
 }
 
-export default function TrafficLight({ activeColors = [], size = 'sm', onColorClick }) {
+export default function TrafficLight({ activeColors = [], size = 'sm', direction = 'column', hang = false, onColorClick }) {
   const active = new Set(activeColors)
   const { circle, gap, px, py, r } = SIZES[size] ?? SIZES.sm
 
@@ -19,13 +20,19 @@ export default function TrafficLight({ activeColors = [], size = 'sm', onColorCl
     <div
       style={{
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: direction,
         alignItems: 'center',
         gap,
         background: '#0b1120',
-        borderRadius: r,
+        borderTopLeftRadius: hang ? 0 : r,
+        borderTopRightRadius: hang ? 0 : r,
+        borderBottomLeftRadius: r,
+        borderBottomRightRadius: r,
         padding: `${py}px ${px}px`,
-        border: '1px solid rgba(255,255,255,0.07)',
+        borderLeft: '1px solid rgba(255,255,255,0.07)',
+        borderRight: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderTop: hang ? 'none' : '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,
       }}
     >
