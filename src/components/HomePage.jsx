@@ -229,6 +229,7 @@ export default function HomePage() {
 
         <MapView
           onPlaceSelect={handlePlaceSelect}
+          onAddReview={handleAddReview}
           onClearSearch={clearSearch}
           searchKeyword={searchKeyword}
           trustiRecs={allRecs}

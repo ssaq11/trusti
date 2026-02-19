@@ -35,7 +35,7 @@ export default function AddRecommendation({ onClose, onAdded, prefill }) {
       })
     }
   }, [prefill])
-  const [rating, setRating] = useState(null)
+  const [rating, setRating] = useState(prefill?.rating || null)
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

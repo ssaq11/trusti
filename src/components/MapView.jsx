@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Navigation, RefreshCw, ChevronRight } from 'lucide-react'
+import { Navigation, RefreshCw, Flag, Ban } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 import TrafficLight from './TrafficLight'
@@ -123,7 +123,7 @@ async function geocodeLocation(query) {
   })
 }
 
-export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
+export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersRef = useRef([])
@@ -709,14 +709,14 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
                 <div
                   key={place.placeId}
                   data-place-id={place.placeId}
-                  className={`flex items-center rounded-lg transition-colors ${isSelected ? 'bg-slate-700' : 'bg-slate-800 hover:bg-slate-700'}`}
+                  className={`flex items-stretch rounded-lg overflow-hidden transition-colors ${isSelected ? 'bg-slate-700' : 'bg-slate-800 hover:bg-slate-700'}`}
                   style={{
                     outline: isSelected ? '2px solid #3b82f6' : 'none',
                     outlineOffset: isSelected ? '-2px' : '0',
                     transition: 'outline 0.3s ease, background-color 0.15s ease',
                   }}
                 >
-                  {/* Tapping the main area pans the map to this place */}
+                  {/* LEFT HALF – tap to select & pan map */}
                   <button
                     onClick={() => {
                       setSelectedPlaceId(place.placeId)
@@ -728,9 +728,10 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
                         }
                       }
                     }}
-                    className="flex-1 flex items-center gap-3 p-3 text-left min-w-0"
+                    className="flex items-center gap-3 p-3 text-left min-w-0"
+                    style={{ flex: '0 0 58%', maxWidth: '58%' }}
                   >
-                    <div className="w-12 h-12 rounded-lg bg-slate-700 overflow-hidden shrink-0">
+                    <div className="relative w-12 h-12 rounded-lg bg-slate-700 overflow-hidden shrink-0">
                       {place.photoUrl ? (
                         <img src={place.photoUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -738,40 +739,70 @@ export default function MapView({ onPlaceSelect, onClearSearch, searchKeyword, t
                           🍽
                         </div>
                       )}
+                      {isBookmarked && (
+                        <div className="absolute top-0.5 right-0.5 text-purple-400 text-[9px] leading-none">★</div>
+                      )}
                     </div>
-
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0">
                       <p className="text-sm font-medium text-white truncate">{place.name}</p>
                       <p className="text-xs text-slate-400 truncate">{place.address}</p>
                       {place.rating && (
                         <p className="text-[10px] text-slate-400 mt-0.5">⭐ {place.rating}</p>
                       )}
                     </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <TrafficLight
-                        activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
-                      />
-                      {isBookmarked && (
-                        <span className="text-purple-500 text-sm" title="Want to go">★</span>
-                      )}
-                    </div>
                   </button>
 
-                  {/* Detail/review button */}
-                  <button
-                    onClick={() => onPlaceSelect?.({
-                      placeId: place.placeId,
-                      name: place.name,
-                      address: place.address,
-                      lat: place.lat,
-                      lng: place.lng,
-                    })}
-                    className="px-2 py-3 shrink-0 text-slate-500 hover:text-green-500 transition-colors self-stretch flex items-center"
-                    title="View details"
+                  {/* Curved divider */}
+                  <div style={{ position: 'relative', width: 12, alignSelf: 'stretch', flexShrink: 0 }}>
+                    <svg
+                      viewBox="0 0 12 100"
+                      preserveAspectRatio="none"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+                    >
+                      <path d="M 6 0 Q 2 50 6 100" stroke="rgba(255,255,255,0.09)" strokeWidth="1" fill="none" />
+                    </svg>
+                  </div>
+
+                  {/* RIGHT HALF – rating actions */}
+                  <div
+                    className="flex items-center justify-end"
+                    style={{ flex: '1 1 0', padding: '8px 10px 8px 2px', gap: 8, background: 'rgba(255,255,255,0.025)' }}
                   >
-                    <ChevronRight size={18} />
-                  </button>
+                    {/* Try / Pass icon buttons – bottom-aligned, left of traffic light */}
+                    <div
+                      className="flex flex-col items-center gap-1.5"
+                      style={{ alignSelf: 'flex-end', paddingBottom: 2 }}
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: 'green' })
+                        }}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-green-400 hover:bg-slate-600 transition-colors"
+                        title="Must try!"
+                      >
+                        <Flag size={13} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: 'red' })
+                        }}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-slate-600 transition-colors"
+                        title="Don't go"
+                      >
+                        <Ban size={13} />
+                      </button>
+                    </div>
+                    {/* Traffic light – larger, per-circle click opens rating modal */}
+                    <TrafficLight
+                      activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
+                      size="lg"
+                      onColorClick={(color) =>
+                        onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: color })
+                      }
+                    />
+                  </div>
                 </div>
               )
             })}
