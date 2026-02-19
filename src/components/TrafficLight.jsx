@@ -1,7 +1,7 @@
 const LIGHTS = [
-  { color: 'red',    on: '#ef4444', glow: 'rgba(239, 68, 68, 0.65)',  dim: 'rgba(239, 68, 68, 0.28)' },
-  { color: 'yellow', on: '#facc15', glow: 'rgba(250, 204, 21, 0.65)', dim: 'rgba(250, 204, 21, 0.28)' },
-  { color: 'green',  on: '#22c55e', glow: 'rgba(34, 197, 94, 0.65)',  dim: 'rgba(34, 197, 94, 0.28)' },
+  { color: 'red',    on: '#ef4444', glow: 'rgba(239, 68, 68, 0.65)',  dim: 'rgba(239, 68, 68, 0.36)' },
+  { color: 'yellow', on: '#facc15', glow: 'rgba(250, 204, 21, 0.65)', dim: 'rgba(250, 204, 21, 0.36)' },
+  { color: 'green',  on: '#22c55e', glow: 'rgba(34, 197, 94, 0.65)',  dim: 'rgba(34, 197, 94, 0.36)' },
 ]
 
 const SIZES = {
@@ -23,10 +23,10 @@ export default function TrafficLight({ activeColors = [], size = 'sm', direction
         flexDirection: direction,
         alignItems: 'center',
         gap,
-        background: 'radial-gradient(ellipse at 18% 22%, rgba(160,210,255,0.14) 0%, #000 62%)',
+        background: 'radial-gradient(ellipse at 18% 22%, rgba(160,210,255,0.11) 0%, #000 62%)',
         borderRadius: r,
         padding: `${py}px ${px}px`,
-        boxShadow: 'inset 1px 1px 3px rgba(180,220,255,0.06)',
+        boxShadow: 'inset 1px 1px 3px rgba(180,220,255,0.05), 0 0 10px rgba(255,255,255,0.08)',
         flexShrink: 0,
       }}
     >
