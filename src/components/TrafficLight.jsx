@@ -1,32 +1,17 @@
 const LIGHTS = [
-  {
-    color: 'red',
-    on: '#ef4444',
-    glow: 'rgba(239, 68, 68, 0.65)',
-    dim: 'rgba(239, 68, 68, 0.15)',
-  },
-  {
-    color: 'yellow',
-    on: '#facc15',
-    glow: 'rgba(250, 204, 21, 0.65)',
-    dim: 'rgba(250, 204, 21, 0.15)',
-  },
-  {
-    color: 'green',
-    on: '#22c55e',
-    glow: 'rgba(34, 197, 94, 0.65)',
-    dim: 'rgba(34, 197, 94, 0.15)',
-  },
+  { color: 'red',    on: '#ef4444', glow: 'rgba(239, 68, 68, 0.65)',  dim: 'rgba(239, 68, 68, 0.15)' },
+  { color: 'yellow', on: '#facc15', glow: 'rgba(250, 204, 21, 0.65)', dim: 'rgba(250, 204, 21, 0.15)' },
+  { color: 'green',  on: '#22c55e', glow: 'rgba(34, 197, 94, 0.65)',  dim: 'rgba(34, 197, 94, 0.15)' },
 ]
 
 export default function TrafficLight({ activeColors = [], size = 'sm', onColorClick }) {
   const active = new Set(activeColors)
 
-  const circleSize = size === 'lg' ? 14 : 10
-  const gap = size === 'lg' ? 5 : 3
-  const paddingX = size === 'lg' ? 6 : 5
-  const paddingY = size === 'lg' ? 7 : 5
-  const borderRadius = size === 'lg' ? 9 : 7
+  const circleSize  = size === 'lg' ? 20 : 10
+  const gap         = size === 'lg' ? 6  : 3
+  const paddingX    = size === 'lg' ? 8  : 5
+  const paddingY    = size === 'lg' ? 9  : 5
+  const borderRadius = size === 'lg' ? 11 : 7
 
   return (
     <div
@@ -53,7 +38,7 @@ export default function TrafficLight({ activeColors = [], size = 'sm', onColorCl
               height: circleSize,
               borderRadius: '50%',
               backgroundColor: isOn ? on : dim,
-              boxShadow: isOn ? `0 0 7px 2px ${glow}` : 'none',
+              boxShadow: isOn ? `0 0 8px 3px ${glow}` : 'none',
               cursor: onColorClick ? 'pointer' : 'default',
             }}
           />

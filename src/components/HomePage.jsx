@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, Clock, Menu, X, Users, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords } from '../services/firestore'
+import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords, setIntent, getUserIntents } from '../services/firestore'
 import MapView from './MapView'
 import PlaceDetail from './PlaceDetail'
 import AddRecommendation from './AddRecommendation'
@@ -11,6 +11,7 @@ export default function HomePage() {
   const { user } = useAuth()
   const [allRecs, setAllRecs] = useState([])
   const [allBookmarks, setAllBookmarks] = useState([])
+  const [allIntents, setAllIntents] = useState([])
   const [selectedPlace, setSelectedPlace] = useState(null) // place detail view
   const [showAdd, setShowAdd] = useState(null) // add recommendation modal
   const [searchKeyword, setSearchKeyword] = useState('')
@@ -57,6 +58,15 @@ export default function HomePage() {
     }
   }, [user.uid])
 
+  const loadIntents = useCallback(async () => {
+    try {
+      const intents = await getUserIntents(user.uid)
+      setAllIntents(intents)
+    } catch (err) {
+      console.error('Failed to load intents:', err)
+    }
+  }, [user.uid])
+
   const loadBookmarks = useCallback(async () => {
     try {
       const bmarks = await getBookmarks(user.uid)
@@ -78,7 +88,8 @@ export default function HomePage() {
   useEffect(() => {
     loadRecs()
     loadBookmarks()
-  }, [loadRecs, loadBookmarks])
+    loadIntents()
+  }, [loadRecs, loadBookmarks, loadIntents])
 
   // Re-fetch when page becomes visible again (e.g. after editing trusti 9)
   useEffect(() => {
@@ -86,11 +97,12 @@ export default function HomePage() {
       if (document.visibilityState === 'visible') {
         loadRecs()
         loadBookmarks()
+        loadIntents()
       }
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [loadRecs, loadBookmarks])
+  }, [loadRecs, loadBookmarks, loadIntents])
 
   function handlePlaceSelect(place) {
     setSelectedPlace(place)
@@ -99,6 +111,15 @@ export default function HomePage() {
   function handleAddReview(place) {
     setSelectedPlace(null)
     setShowAdd(place)
+  }
+
+  async function handleIntentSubmit({ place, type, note }) {
+    try {
+      await setIntent(user.uid, place, type, note)
+      await loadIntents()
+    } catch (err) {
+      console.error('Failed to save intent:', err)
+    }
   }
 
   function handleSearch(e) {
@@ -230,6 +251,8 @@ export default function HomePage() {
         <MapView
           onPlaceSelect={handlePlaceSelect}
           onAddReview={handleAddReview}
+          onIntentSubmit={handleIntentSubmit}
+          userIntents={allIntents}
           onClearSearch={clearSearch}
           searchKeyword={searchKeyword}
           trustiRecs={allRecs}

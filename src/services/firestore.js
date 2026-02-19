@@ -228,6 +228,29 @@ export async function removeFromTrusti9(uid, targetUid) {
   await setDoc(doc(db, 'users', uid), { trusti9: current.filter(id => id !== targetUid) }, { merge: true })
 }
 
+// --- INTENTS (Want to go / I'll pass) ---
+
+export async function setIntent(userId, placeData, type, note) {
+  const docId = `${userId}_${placeData.placeId}`
+  await setDoc(doc(db, 'intents', docId), {
+    userId,
+    placeId: placeData.placeId,
+    placeName: placeData.name,
+    placeAddress: placeData.address || '',
+    placeLat: placeData.lat || null,
+    placeLng: placeData.lng || null,
+    type, // 'try' | 'pass'
+    note: note || '',
+    createdAt: serverTimestamp(),
+  })
+}
+
+export async function getUserIntents(userId) {
+  const q = query(collection(db, 'intents'), where('userId', '==', userId))
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
 // --- ACCESS CONTROL ---
 
 export async function isUserApproved(uid) {

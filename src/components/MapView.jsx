@@ -3,6 +3,7 @@ import { Navigation, RefreshCw, Flag, Ban } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 import TrafficLight from './TrafficLight'
+import IntentModal from './IntentModal'
 
 const DEFAULT_CENTER = { lat: 30.2672, lng: -97.7431 } // Austin, TX fallback
 const TRUSTI_COLORS = { red: '#ef4444', yellow: '#eab308', green: '#22c55e' }
@@ -70,7 +71,7 @@ function buildReviewDotSvg(counts) {
 }
 
 // Build HTML content for an AdvancedMarkerElement
-function buildMarkerContent(place, { hasReviews, counts, isBookmarked, isKeywordMatch, showLabel }) {
+function buildMarkerContent(place, { hasReviews, counts, isBookmarked, isKeywordMatch, showLabel, intentType }) {
   const container = document.createElement('div')
   container.style.cssText = 'display:flex;flex-direction:column;align-items:center;'
 
@@ -91,6 +92,18 @@ function buildMarkerContent(place, { hasReviews, counts, isBookmarked, isKeyword
       <circle cx="8" cy="8" r="7" fill="#9ca3af" fill-opacity="0.7" stroke="#fff" stroke-width="1"/>
     </svg>`
   }
+  if (intentType) {
+    dot.style.position = 'relative'
+    const intentOverlay = document.createElement('div')
+    intentOverlay.className = 'trusti-intent-overlay'
+    intentOverlay.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;'
+    const svgEl = dot.querySelector('svg')
+    const iw = svgEl ? parseInt(svgEl.getAttribute('width')) : 16
+    const ih = svgEl ? parseInt(svgEl.getAttribute('height')) : 16
+    intentOverlay.innerHTML = buildIntentOverlaySvg(intentType, iw, ih)
+    dot.appendChild(intentOverlay)
+  }
+
   container.appendChild(dot)
 
   const label = document.createElement('div')
@@ -100,6 +113,44 @@ function buildMarkerContent(place, { hasReviews, counts, isBookmarked, isKeyword
   container.appendChild(label)
 
   return { element: container, labelEl: label }
+}
+
+function buildIntentOverlaySvg(intentType, w, h) {
+  if (intentType === 'try') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="9" fill="rgba(0,0,0,0.55)"/>
+      <line x1="6" y1="3" x2="6" y2="17" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M6 3 L16 7 L6 11 Z" fill="#22c55e"/>
+    </svg>`
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="9" fill="rgba(239,68,68,0.88)"/>
+    <circle cx="10" cy="10" r="9" fill="none" stroke="white" stroke-width="1.5"/>
+    <line x1="5" y1="5" x2="15" y2="15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  </svg>`
+}
+
+function getCuisineLabel(types = []) {
+  const specific = types.find(t => t.endsWith('_restaurant') && t !== 'restaurant')
+  if (specific) {
+    return specific.replace('_restaurant', '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  }
+  const known = { cafe: 'Café', bar: 'Bar', bakery: 'Bakery', night_club: 'Nightclub', meal_delivery: 'Delivery' }
+  for (const [key, label] of Object.entries(known)) {
+    if (types.includes(key)) return label
+  }
+  return null
+}
+
+function getPriceLabel(priceLevel) {
+  const map = {
+    PRICE_LEVEL_FREE: 'Free',
+    PRICE_LEVEL_INEXPENSIVE: '$',
+    PRICE_LEVEL_MODERATE: '$$',
+    PRICE_LEVEL_EXPENSIVE: '$$$',
+    PRICE_LEVEL_VERY_EXPENSIVE: '$$$$',
+  }
+  return map[priceLevel] || null
 }
 
 function isZipCode(text) {
@@ -123,7 +174,7 @@ async function geocodeLocation(query) {
   })
 }
 
-export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
+export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, userIntents = [], onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersRef = useRef([])
@@ -137,6 +188,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, sea
   const idleTimerRef = useRef(null)
   const skipNextIdleRef = useRef(false)
   const searchGenRef = useRef(0)
+  const userIntentsRef = useRef(userIntents)
   const centeredKeywordRef = useRef(null)
   const [places, setPlaces] = useState([])
   const [userLocation, setUserLocation] = useState(null)
@@ -144,6 +196,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, sea
   const [loading, setLoading] = useState(true)
   const [locating, setLocating] = useState(false)
   const [selectedPlaceId, setSelectedPlaceId] = useState(null)
+  const [intentModal, setIntentModal] = useState(null) // null | { place, type }
 
   // Highlight the selected marker — scale up dot + border ring
   useEffect(() => {
@@ -190,6 +243,35 @@ export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, sea
   useEffect(() => {
     filterRef.current = filter
   }, [filter])
+
+  useEffect(() => {
+    userIntentsRef.current = userIntents
+  }, [userIntents])
+
+  // Update intent overlays on existing markers immediately when intents change
+  useEffect(() => {
+    const intentLookup = new Map(userIntents.map(i => [i.placeId, i.type]))
+    markersRef.current.forEach((marker, idx) => {
+      const place = places[idx]
+      if (!place) return
+      const dot = marker.content?.firstChild
+      if (!dot) return
+      const existing = dot.querySelector('.trusti-intent-overlay')
+      if (existing) existing.remove()
+      const intentType = intentLookup.get(place.placeId)
+      if (intentType) {
+        dot.style.position = 'relative'
+        const overlay = document.createElement('div')
+        overlay.className = 'trusti-intent-overlay'
+        overlay.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;'
+        const svgEl = dot.querySelector('svg')
+        const iw = svgEl ? parseInt(svgEl.getAttribute('width')) : 16
+        const ih = svgEl ? parseInt(svgEl.getAttribute('height')) : 16
+        overlay.innerHTML = buildIntentOverlaySvg(intentType, iw, ih)
+        dot.appendChild(overlay)
+      }
+    })
+  }, [userIntents, places])
 
   // Scroll to a place card in the list so it sits at the top of the visible area
   const scrollToCard = useCallback((placeId) => {
@@ -376,6 +458,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, sea
     const map = mapInstanceRef.current
     const showLabel = (map.getZoom() || 15) >= LABEL_ZOOM
 
+    const intentLookup = new Map(userIntentsRef.current.map(i => [i.placeId, i.type]))
+
     results.forEach(place => {
       if (place.lat == null || place.lng == null) return
 
@@ -390,6 +474,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, sea
         isBookmarked,
         isKeywordMatch: !!place._keywordMatch,
         showLabel,
+        intentType: intentLookup.get(place.placeId) || null,
       })
 
       const marker = new AdvancedMarker({
@@ -700,20 +785,25 @@ export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, sea
             {places.map(place => {
               const placeReviews = trustiRecs.filter(r => r.restaurantPlaceId === place.placeId)
               const counts = getDeduplicatedCounts(placeReviews)
-              const hasReviews = placeReviews.length > 0
               const isBookmarked = bookmarks.some(b => b.placeId === place.placeId)
-
               const isSelected = selectedPlaceId === place.placeId
+              const cuisine = getCuisineLabel(place.types || [])
+              const price = getPriceLabel(place.priceLevel)
+              const cuisinePriceMeta = [cuisine, price].filter(Boolean).join(' • ')
 
               return (
                 <div
                   key={place.placeId}
                   data-place-id={place.placeId}
-                  className={`flex items-stretch rounded-lg overflow-hidden transition-colors ${isSelected ? 'bg-slate-700' : 'bg-slate-800 hover:bg-slate-700'}`}
                   style={{
+                    display: 'flex',
+                    borderRadius: 14,
+                    background: '#0b1120',
+                    padding: 2,
+                    gap: 1,
                     outline: isSelected ? '2px solid #3b82f6' : 'none',
-                    outlineOffset: isSelected ? '-2px' : '0',
-                    transition: 'outline 0.3s ease, background-color 0.15s ease',
+                    outlineOffset: '-1px',
+                    transition: 'outline 0.3s ease',
                   }}
                 >
                   {/* LEFT HALF – tap to select & pan map */}
@@ -728,73 +818,58 @@ export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, sea
                         }
                       }
                     }}
-                    className="flex items-center gap-3 p-3 text-left min-w-0"
-                    style={{ flex: '0 0 58%', maxWidth: '58%' }}
+                    style={{
+                      flex: '1 1 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px',
+                      textAlign: 'left',
+                      background: '#1e293b',
+                      borderRadius: '12px 3px 3px 12px',
+                      minWidth: 0,
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
                   >
-                    <div className="relative w-12 h-12 rounded-lg bg-slate-700 overflow-hidden shrink-0">
+                    <div style={{ position: 'relative', width: 48, height: 48, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: '#334155' }}>
                       {place.photoUrl ? (
-                        <img src={place.photoUrl} alt="" className="w-full h-full object-cover" />
+                        <img src={place.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-lg">
-                          🍽
-                        </div>
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: '#64748b' }}>🍽</div>
                       )}
                       {isBookmarked && (
-                        <div className="absolute top-0.5 right-0.5 text-purple-400 text-[9px] leading-none">★</div>
+                        <div style={{ position: 'absolute', top: 2, right: 2, color: '#a78bfa', fontSize: 9, lineHeight: 1 }}>★</div>
                       )}
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{place.name}</p>
-                      <p className="text-xs text-slate-400 truncate">{place.address}</p>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'white', wordBreak: 'break-word', lineHeight: 1.3 }}>{place.name}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, wordBreak: 'break-word', lineHeight: 1.3 }}>{place.address}</div>
+                      {cuisinePriceMeta && (
+                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{cuisinePriceMeta}</div>
+                      )}
                       {place.rating && (
-                        <p className="text-[10px] text-slate-400 mt-0.5">⭐ {place.rating}</p>
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 11, height: 11, borderRadius: '50%', background: 'white', color: '#4285F4', fontSize: 7, fontWeight: 900, fontFamily: 'Arial,sans-serif', flexShrink: 0 }}>G</span>
+                          {place.rating}
+                        </div>
                       )}
                     </div>
                   </button>
 
-                  {/* Curved divider */}
-                  <div style={{ position: 'relative', width: 12, alignSelf: 'stretch', flexShrink: 0 }}>
-                    <svg
-                      viewBox="0 0 12 100"
-                      preserveAspectRatio="none"
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-                    >
-                      <path d="M 6 0 Q 2 50 6 100" stroke="rgba(255,255,255,0.09)" strokeWidth="1" fill="none" />
-                    </svg>
-                  </div>
-
-                  {/* RIGHT HALF – rating actions */}
+                  {/* RIGHT HALF – traffic light + intent buttons */}
                   <div
-                    className="flex items-center justify-end"
-                    style={{ flex: '1 1 0', padding: '8px 10px 8px 2px', gap: 8, background: 'rgba(255,255,255,0.025)' }}
+                    style={{
+                      flex: '1 1 0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-end',
+                      justifyContent: 'space-between',
+                      padding: '10px 10px 10px 6px',
+                      background: '#1a2537',
+                      borderRadius: '3px 12px 12px 3px',
+                    }}
                   >
-                    {/* Try / Pass icon buttons – bottom-aligned, left of traffic light */}
-                    <div
-                      className="flex flex-col items-center gap-1.5"
-                      style={{ alignSelf: 'flex-end', paddingBottom: 2 }}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: 'green' })
-                        }}
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-green-400 hover:bg-slate-600 transition-colors"
-                        title="Must try!"
-                      >
-                        <Flag size={13} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: 'red' })
-                        }}
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-slate-600 transition-colors"
-                        title="Don't go"
-                      >
-                        <Ban size={13} />
-                      </button>
-                    </div>
-                    {/* Traffic light – larger, per-circle click opens rating modal */}
                     <TrafficLight
                       activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
                       size="lg"
@@ -802,6 +877,29 @@ export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, sea
                         onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: color })
                       }
                     />
+                    {/* Try / Pass intent buttons – side by side at bottom */}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setIntentModal({ place: { placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng }, type: 'try' })
+                        }}
+                        style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(34,197,94,0.12)', border: 'none', cursor: 'pointer', color: '#4ade80' }}
+                        title="Want to go"
+                      >
+                        <Flag size={18} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setIntentModal({ place: { placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng }, type: 'pass' })
+                        }}
+                        style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.12)', border: 'none', cursor: 'pointer', color: '#f87171' }}
+                        title="I'll pass"
+                      >
+                        <Ban size={18} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -809,6 +907,18 @@ export default function MapView({ onPlaceSelect, onAddReview, onClearSearch, sea
           </div>
         )}
       </div>
+
+      {intentModal && (
+        <IntentModal
+          place={intentModal.place}
+          initialType={intentModal.type}
+          onClose={() => setIntentModal(null)}
+          onSubmit={async ({ type, note }) => {
+            await onIntentSubmit?.({ place: intentModal.place, type, note })
+            setIntentModal(null)
+          }}
+        />
+      )}
     </div>
   )
 }
