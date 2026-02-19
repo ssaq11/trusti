@@ -801,32 +801,37 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               }
 
               return (
+                /* Outer wrapper: dark bg + overflow:hidden clips both halves into
+                   rounded outer corners. The 1px gap between halves shows this dark
+                   bg as the iOS-style divider line. */
                 <div
                   key={place.placeId}
                   data-place-id={place.placeId}
                   style={{
-                    position: 'relative',
+                    display: 'flex',
                     borderRadius: 12,
-                    background: '#1e293b',
+                    background: '#0f1928',
+                    overflow: 'hidden',
+                    gap: 1,
                     outline: isSelected ? '2px solid #3b82f6' : 'none',
                     outlineOffset: '-2px',
                     transition: 'outline 0.3s ease',
                   }}
                 >
-                  {/* Full-width tap zone – text flows freely, right padding clears action zone */}
+                  {/* LEFT HALF – curved outer-left, straight inner-right (from overflow clip) */}
                   <button
                     onClick={selectAndPan}
                     style={{
+                      flex: '1 1 0',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 10,
-                      padding: '10px 100px 10px 10px',
-                      width: '100%',
+                      padding: '10px',
                       textAlign: 'left',
-                      background: 'none',
+                      background: '#1e293b',
                       border: 'none',
                       cursor: 'pointer',
-                      boxSizing: 'border-box',
+                      minWidth: 0,
                     }}
                   >
                     <div style={{ position: 'relative', width: 48, height: 48, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: '#334155' }}>
@@ -854,64 +859,55 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     </div>
                   </button>
 
-                  {/* Thin curved divider line */}
-                  <div style={{
-                    position: 'absolute',
-                    right: 94,
-                    top: 8,
-                    bottom: 8,
-                    width: 1,
-                    background: 'rgba(255,255,255,0.1)',
-                    borderRadius: 1,
-                  }} />
-
-                  {/* Right action zone – absolutely positioned, both pans map and hosts intent buttons */}
+                  {/* RIGHT HALF – straight inner-left, curved outer-right (from overflow clip).
+                      Row layout: [intent buttons column] [traffic light] so height stays
+                      within the card frame. Traffic light sits flush against right curve. */}
                   <div
                     onClick={selectAndPan}
                     style={{
-                      position: 'absolute',
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 94,
+                      width: 80,
+                      flexShrink: 0,
                       display: 'flex',
-                      flexDirection: 'column',
+                      flexDirection: 'row',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '10px 8px',
+                      justifyContent: 'flex-end',
+                      gap: 6,
+                      padding: '8px 8px 8px 6px',
+                      background: '#1e293b',
                       cursor: 'pointer',
                     }}
                   >
-                    <TrafficLight
-                      activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
-                      size="lg"
-                      onColorClick={(color) =>
-                        onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: color })
-                      }
-                    />
-                    {/* Try / Pass – side by side */}
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    {/* Try / Pass intent buttons – stacked column */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           setIntentModal({ place: { placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng }, type: 'try' })
                         }}
-                        style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(34,197,94,0.12)', border: 'none', cursor: 'pointer', color: '#4ade80' }}
+                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(34,197,94,0.12)', border: 'none', cursor: 'pointer', color: '#4ade80' }}
                         title="Want to go"
                       >
-                        <Flag size={18} />
+                        <Flag size={14} />
                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           setIntentModal({ place: { placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng }, type: 'pass' })
                         }}
-                        style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.12)', border: 'none', cursor: 'pointer', color: '#f87171' }}
+                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.12)', border: 'none', cursor: 'pointer', color: '#f87171' }}
                         title="I'll pass"
                       >
-                        <Ban size={18} />
+                        <Ban size={14} />
                       </button>
                     </div>
+                    {/* Traffic light – md size, right edge aligns with card's curved wall */}
+                    <TrafficLight
+                      activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
+                      size="md"
+                      onColorClick={(color) =>
+                        onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: color })
+                      }
+                    />
                   </div>
                 </div>
               )
