@@ -29,10 +29,10 @@ export default function TrafficLight({ activeColors = [], size = 'sm', direction
         borderBottomLeftRadius: r,
         borderBottomRightRadius: r,
         padding: `${py}px ${px}px`,
-        borderLeft: '1px solid rgba(255,255,255,0.07)',
-        borderRight: '1px solid rgba(255,255,255,0.07)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-        borderTop: hang ? 'none' : '1px solid rgba(255,255,255,0.07)',
+        borderLeft: '1px solid rgba(255,255,255,0.22)',
+        borderRight: '1px solid rgba(255,255,255,0.22)',
+        borderBottom: '1px solid rgba(255,255,255,0.22)',
+        borderTop: hang ? 'none' : '1px solid rgba(255,255,255,0.22)',
         flexShrink: 0,
       }}
     >

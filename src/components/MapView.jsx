@@ -875,7 +875,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                   >
                     {/* Try / Pass flags — side by side, anchored bottom-left */}
                     <div
-                      style={{ position: 'absolute', bottom: 6, left: 6, display: 'flex', gap: 4 }}
+                      style={{ position: 'absolute', top: 4, left: 6, display: 'flex', gap: 8 }}
                       onClick={e => e.stopPropagation()}
                     >
                       <button
@@ -904,7 +904,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
 
                   {/* Traffic light — horizontal, hanging from top-right corner */}
                   <div
-                    style={{ position: 'absolute', top: 4, right: 0, zIndex: 2 }}
+                    style={{ position: 'absolute', top: 4, right: 6, zIndex: 2 }}
                     onClick={e => e.stopPropagation()}
                   >
                     <TrafficLight
