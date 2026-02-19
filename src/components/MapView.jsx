@@ -801,24 +801,25 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               }
 
               return (
-                /* Outer wrapper: dark bg + overflow:hidden clips both halves into
-                   rounded outer corners. The 1px gap between halves shows this dark
-                   bg as the iOS-style divider line. */
+                /* Two complete rounded rectangles (each with all 4 corners at 12px)
+                   side-by-side. Outer has same background as halves so the concave
+                   inner corners (where halves round away from the centre) blend in.
+                   A 1px white-ish div acts as the visible divider line between them. */
                 <div
                   key={place.placeId}
                   data-place-id={place.placeId}
                   style={{
                     display: 'flex',
+                    alignItems: 'stretch',
                     borderRadius: 12,
-                    background: '#0f1928',
                     overflow: 'hidden',
-                    gap: 1,
+                    background: '#1e293b',
                     outline: isSelected ? '2px solid #3b82f6' : 'none',
                     outlineOffset: '-2px',
                     transition: 'outline 0.3s ease',
                   }}
                 >
-                  {/* LEFT HALF – curved outer-left, straight inner-right (from overflow clip) */}
+                  {/* LEFT HALF — full rounded rectangle, select + pan on tap */}
                   <button
                     onClick={selectAndPan}
                     style={{
@@ -829,6 +830,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       padding: '10px',
                       textAlign: 'left',
                       background: '#1e293b',
+                      borderRadius: 12,
                       border: 'none',
                       cursor: 'pointer',
                       minWidth: 0,
@@ -859,26 +861,31 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     </div>
                   </button>
 
-                  {/* RIGHT HALF – straight inner-left, curved outer-right (from overflow clip).
-                      Row layout: [intent buttons column] [traffic light] so height stays
-                      within the card frame. Traffic light sits flush against right curve. */}
+                  {/* 1px subtle white divider line */}
+                  <div style={{ width: 1, flexShrink: 0, background: 'rgba(255,255,255,0.12)' }} />
+
+                  {/* RIGHT HALF — full rounded rectangle, select + pan on tap.
+                      Traffic light (card size, ~66px) nearly fills card height.
+                      Try/Pass flags are side-by-side at bottom-left, absolutely placed. */}
                   <div
                     onClick={selectAndPan}
                     style={{
-                      width: 80,
-                      flexShrink: 0,
+                      flex: '1 1 0',
+                      position: 'relative',
                       display: 'flex',
-                      flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'flex-end',
-                      gap: 6,
-                      padding: '8px 8px 8px 6px',
+                      padding: '5px 6px',
                       background: '#1e293b',
+                      borderRadius: 12,
                       cursor: 'pointer',
                     }}
                   >
-                    {/* Try / Pass intent buttons – stacked column */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {/* Try / Pass flags — side by side, anchored bottom-left */}
+                    <div
+                      style={{ position: 'absolute', bottom: 6, left: 6, display: 'flex', gap: 4 }}
+                      onClick={e => e.stopPropagation()}
+                    >
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -887,7 +894,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                         style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(34,197,94,0.12)', border: 'none', cursor: 'pointer', color: '#4ade80' }}
                         title="Want to go"
                       >
-                        <Flag size={14} />
+                        <Flag size={13} />
                       </button>
                       <button
                         onClick={(e) => {
@@ -897,13 +904,14 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                         style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.12)', border: 'none', cursor: 'pointer', color: '#f87171' }}
                         title="I'll pass"
                       >
-                        <Ban size={14} />
+                        <Ban size={13} />
                       </button>
                     </div>
-                    {/* Traffic light – md size, right edge aligns with card's curved wall */}
+
+                    {/* Traffic light — card size fills most of card height */}
                     <TrafficLight
                       activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
-                      size="md"
+                      size="card"
                       onColorClick={(color) =>
                         onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: color })
                       }
