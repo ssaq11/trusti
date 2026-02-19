@@ -801,16 +801,16 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               }
 
               return (
-                /* Two complete rounded rectangles (each with all 4 corners at 12px)
-                   side-by-side. Outer has same background as halves so the concave
-                   inner corners (where halves round away from the centre) blend in.
-                   A 1px white-ish div acts as the visible divider line between them. */
+                /* Outer is position:relative so divider + right zone can be
+                   absolute. Left half button fills 100% width so text flows
+                   freely across the full card. The right zone sits on top (no
+                   background) and the divider is an absolute 1px line. */
                 <div
                   key={place.placeId}
                   data-place-id={place.placeId}
                   style={{
+                    position: 'relative',
                     display: 'flex',
-                    alignItems: 'stretch',
                     height: 72,
                     borderRadius: 12,
                     overflow: 'hidden',
@@ -820,7 +820,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     transition: 'outline 0.3s ease',
                   }}
                 >
-                  {/* LEFT HALF — full rounded rectangle, select + pan on tap */}
+                  {/* LEFT HALF button — spans full card width so text flows freely */}
                   <button
                     onClick={selectAndPan}
                     style={{
@@ -831,7 +831,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       padding: '8px',
                       textAlign: 'left',
                       background: '#1e293b',
-                      borderRadius: 12,
                       border: 'none',
                       cursor: 'pointer',
                       minWidth: 0,
@@ -862,23 +861,23 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     </div>
                   </button>
 
-                  {/* 1px subtle white divider line */}
-                  <div style={{ width: 1, flexShrink: 0, background: 'rgba(255,255,255,0.12)' }} />
+                  {/* 1px divider — absolute so it doesn't consume flex space */}
+                  <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.12)', pointerEvents: 'none' }} />
 
-                  {/* RIGHT HALF — full rounded rectangle, select + pan on tap.
-                      Traffic light (card size, ~66px) nearly fills card height.
-                      Try/Pass flags are side-by-side at bottom-left, absolutely placed. */}
+                  {/* RIGHT ZONE — absolute, no background, sits on top of text.
+                      Traffic light + side-by-side flags. Both tap and pan. */}
                   <div
                     onClick={selectAndPan}
                     style={{
-                      flex: '1 1 0',
-                      position: 'relative',
+                      position: 'absolute',
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: '50%',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'flex-end',
                       padding: '3px 6px',
-                      background: '#1e293b',
-                      borderRadius: 12,
                       cursor: 'pointer',
                     }}
                   >
