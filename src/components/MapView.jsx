@@ -929,26 +929,25 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       cursor: 'pointer',
                     }}
                   >
-                    {/* Try / Pass flags — grayed when a light is active */}
+                    {/* Try / Pass flags — dims (not locked) when a light is active */}
                     <div
                       style={{
                         position: 'absolute', top: 4, left: 6, display: 'flex', gap: 8,
-                        opacity: review?.placeId === place.placeId && review?.type === 'light' ? 0.25 : 1,
+                        opacity: review?.placeId === place.placeId && review?.type === 'light' ? 0.35 : 1,
                         transition: 'opacity 0.15s',
-                        pointerEvents: review?.placeId === place.placeId && review?.type === 'light' ? 'none' : 'auto',
                       }}
                       onClick={e => e.stopPropagation()}
                     >
                       <button
                         onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'try') }}
-                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: review?.placeId === place.placeId && review?.value === 'try' ? 'rgba(34,197,94,0.3)' : 'rgba(34,197,94,0.12)', border: 'none', cursor: 'pointer', color: '#4ade80', transition: 'background 0.15s' }}
+                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: review?.placeId === place.placeId && review?.value === 'try' ? 'rgba(34,197,94,0.3)' : 'rgba(34,197,94,0.12)', border: 'none', cursor: 'pointer', color: '#4ade80', transition: 'all 0.15s', opacity: review?.placeId === place.placeId && review?.type === 'flag' && review?.value === 'pass' ? 0.35 : 1 }}
                         title="Want to go"
                       >
                         <Flag size={13} />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'pass') }}
-                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: review?.placeId === place.placeId && review?.value === 'pass' ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.12)', border: 'none', cursor: 'pointer', color: '#f87171', transition: 'background 0.15s' }}
+                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: review?.placeId === place.placeId && review?.value === 'pass' ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.12)', border: 'none', cursor: 'pointer', color: '#f87171', transition: 'all 0.15s', opacity: review?.placeId === place.placeId && review?.type === 'flag' && review?.value === 'try' ? 0.35 : 1 }}
                         title="I'll pass"
                       >
                         <Ban size={13} />
@@ -957,20 +956,19 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
 
                     {/* Label under flags */}
                     {review?.placeId === place.placeId && review?.type === 'flag' && (
-                      <div style={{ position: 'absolute', top: 35, left: 6, width: 60, textAlign: 'center', fontSize: 10, fontWeight: 700, color: review.value === 'try' ? '#4ade80' : '#f87171', pointerEvents: 'none', letterSpacing: '0.02em' }}>
-                        {review.value === 'try' ? 'Want to try' : 'No interest'}
+                      <div style={{ position: 'absolute', top: 33, left: 6, whiteSpace: 'nowrap', fontSize: 14, fontWeight: 700, color: review.value === 'try' ? '#4ade80' : '#f87171', pointerEvents: 'none' }}>
+                        {review.value === 'try' ? '🚩 Want to try' : '🚫 No interest'}
                       </div>
                     )}
 
                   </div>
 
-                  {/* Traffic light — grayed when a flag is active */}
+                  {/* Traffic light — dims (not locked) when a flag is active */}
                   <div
                     style={{
                       position: 'absolute', top: 4, right: 6, zIndex: 2,
-                      opacity: review?.placeId === place.placeId && review?.type === 'flag' ? 0.25 : 1,
+                      opacity: review?.placeId === place.placeId && review?.type === 'flag' ? 0.35 : 1,
                       transition: 'opacity 0.15s',
-                      pointerEvents: review?.placeId === place.placeId && review?.type === 'flag' ? 'none' : 'auto',
                     }}
                     onClick={e => e.stopPropagation()}
                   >
@@ -984,8 +982,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
 
                   {/* Label under traffic light */}
                   {review?.placeId === place.placeId && review?.type === 'light' && (
-                    <div style={{ position: 'absolute', top: 38, right: 6, width: 92, textAlign: 'center', fontSize: 10, fontWeight: 700, color: review.value === 'green' ? '#4ade80' : review.value === 'yellow' ? '#facc15' : '#f87171', pointerEvents: 'none', letterSpacing: '0.02em' }}>
-                      {review.value === 'green' ? 'Go!' : review.value === 'yellow' ? 'Meh' : 'Pass'}
+                    <div style={{ position: 'absolute', top: 36, right: 6, width: 92, textAlign: 'center', fontSize: 14, fontWeight: 700, color: review.value === 'green' ? '#4ade80' : review.value === 'yellow' ? '#facc15' : '#f87171', pointerEvents: 'none' }}>
+                      {review.value === 'green' ? '👍 Go!' : review.value === 'yellow' ? '😑 Meh' : '😞 Pass'}
                     </div>
                   )}
                 </div>
@@ -1034,6 +1032,12 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               alignItems: 'center',
               boxShadow: '0 -4px 24px rgba(0,0,0,0.55)',
             }}>
+              <button
+                onClick={closeReview}
+                style={{ padding: '7px 12px', borderRadius: 7, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 13, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}
+              >
+                Cancel
+              </button>
               <button
                 disabled
                 style={{ flex: 1, padding: '7px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#475569', fontSize: 12, textAlign: 'left', cursor: 'default' }}
