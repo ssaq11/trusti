@@ -791,45 +791,42 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               const price = getPriceLabel(place.priceLevel)
               const cuisinePriceMeta = [cuisine, price].filter(Boolean).join(' • ')
 
+              function selectAndPan() {
+                setSelectedPlaceId(place.placeId)
+                if (place.lat != null && place.lng != null && mapInstanceRef.current) {
+                  skipNextIdleRef.current = true
+                  mapInstanceRef.current.panTo({ lat: place.lat, lng: place.lng })
+                  if (mapInstanceRef.current.getZoom() < 15) mapInstanceRef.current.setZoom(15)
+                }
+              }
+
               return (
                 <div
                   key={place.placeId}
                   data-place-id={place.placeId}
                   style={{
-                    display: 'flex',
-                    borderRadius: 14,
-                    background: '#0b1120',
-                    padding: 2,
-                    gap: 1,
+                    position: 'relative',
+                    borderRadius: 12,
+                    background: '#1e293b',
                     outline: isSelected ? '2px solid #3b82f6' : 'none',
-                    outlineOffset: '-1px',
+                    outlineOffset: '-2px',
                     transition: 'outline 0.3s ease',
                   }}
                 >
-                  {/* LEFT HALF – tap to select & pan map */}
+                  {/* Full-width tap zone – text flows freely, right padding clears action zone */}
                   <button
-                    onClick={() => {
-                      setSelectedPlaceId(place.placeId)
-                      if (place.lat != null && place.lng != null && mapInstanceRef.current) {
-                        skipNextIdleRef.current = true
-                        mapInstanceRef.current.panTo({ lat: place.lat, lng: place.lng })
-                        if (mapInstanceRef.current.getZoom() < 15) {
-                          mapInstanceRef.current.setZoom(15)
-                        }
-                      }
-                    }}
+                    onClick={selectAndPan}
                     style={{
-                      flex: '1 1 0',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 10,
-                      padding: '10px',
+                      padding: '10px 100px 10px 10px',
+                      width: '100%',
                       textAlign: 'left',
-                      background: '#1e293b',
-                      borderRadius: '12px 3px 3px 12px',
-                      minWidth: 0,
+                      background: 'none',
                       border: 'none',
                       cursor: 'pointer',
+                      boxSizing: 'border-box',
                     }}
                   >
                     <div style={{ position: 'relative', width: 48, height: 48, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: '#334155' }}>
@@ -842,7 +839,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                         <div style={{ position: 'absolute', top: 2, right: 2, color: '#a78bfa', fontSize: 9, lineHeight: 1 }}>★</div>
                       )}
                     </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'white', wordBreak: 'break-word', lineHeight: 1.3 }}>{place.name}</div>
                       <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, wordBreak: 'break-word', lineHeight: 1.3 }}>{place.address}</div>
                       {cuisinePriceMeta && (
@@ -857,17 +854,32 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     </div>
                   </button>
 
-                  {/* RIGHT HALF – traffic light + intent buttons */}
+                  {/* Thin curved divider line */}
+                  <div style={{
+                    position: 'absolute',
+                    right: 94,
+                    top: 8,
+                    bottom: 8,
+                    width: 1,
+                    background: 'rgba(255,255,255,0.1)',
+                    borderRadius: 1,
+                  }} />
+
+                  {/* Right action zone – absolutely positioned, both pans map and hosts intent buttons */}
                   <div
+                    onClick={selectAndPan}
                     style={{
-                      flex: '1 1 0',
+                      position: 'absolute',
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 94,
                       display: 'flex',
                       flexDirection: 'column',
-                      alignItems: 'flex-end',
+                      alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '10px 10px 10px 6px',
-                      background: '#1a2537',
-                      borderRadius: '3px 12px 12px 3px',
+                      padding: '10px 8px',
+                      cursor: 'pointer',
                     }}
                   >
                     <TrafficLight
@@ -877,7 +889,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                         onAddReview?.({ placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, rating: color })
                       }
                     />
-                    {/* Try / Pass intent buttons – side by side at bottom */}
+                    {/* Try / Pass – side by side */}
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button
                         onClick={(e) => {
