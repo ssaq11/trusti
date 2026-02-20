@@ -200,6 +200,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   const [review, setReview] = useState(null) // null | { placeId, type:'light'|'flag', value, visible }
   const cardRefs = useRef({})
   const programmaticScrollRef = useRef(false)
+  const savedScrollRef = useRef(0)
 
   // Highlight the selected marker — scale up dot + border ring
   useEffect(() => {
@@ -739,8 +740,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   function openReview(place, type, value) {
     if (review?.placeId === place.placeId && review?.type === type && review?.value === value) {
       // Same element tapped again — deselect and close
-      setReview(r => r ? { ...r, visible: false } : null)
-      setTimeout(() => setReview(null), 220)
+      closeReview()
       return
     }
     if (review?.placeId === place.placeId) {
@@ -748,16 +748,29 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
       setReview(r => r ? { ...r, type, value } : null)
       return
     }
-    // New card — slide banner up, move card to top
+    // New card — highlight it, save scroll pos, scroll card to top of viewport
+    setSelectedPlaceId(place.placeId)
     setReview({ placeId: place.placeId, type, value, visible: false })
-    programmaticScrollRef.current = true
-    listRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-    setTimeout(() => { programmaticScrollRef.current = false }, 600)
+    const list = listRef.current
+    const cardEl = cardRefs.current[place.placeId]
+    if (list && cardEl) {
+      savedScrollRef.current = list.scrollTop
+      const cardOffsetInList = cardEl.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop
+      programmaticScrollRef.current = true
+      list.scrollTo({ top: cardOffsetInList, behavior: 'smooth' })
+      setTimeout(() => { programmaticScrollRef.current = false }, 600)
+    }
     setTimeout(() => setReview(r => r ? { ...r, visible: true } : null), 10)
   }
 
   function closeReview() {
     setReview(r => r ? { ...r, visible: false } : null)
+    const list = listRef.current
+    if (list) {
+      programmaticScrollRef.current = true
+      list.scrollTo({ top: savedScrollRef.current, behavior: 'smooth' })
+      setTimeout(() => { programmaticScrollRef.current = false }, 600)
+    }
     setTimeout(() => setReview(null), 220)
   }
 
@@ -842,7 +855,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
 
         {places.length > 0 && (
           <div className="space-y-1.5">
-            {(review ? [places.find(p => p.placeId === review.placeId), ...places.filter(p => p.placeId !== review.placeId)].filter(Boolean) : places).map(place => {
+            {places.map(place => {
               const placeReviews = trustiRecs.filter(r => r.restaurantPlaceId === place.placeId)
               const counts = getDeduplicatedCounts(placeReviews)
               const isBookmarked = bookmarks.some(b => b.placeId === place.placeId)
