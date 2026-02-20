@@ -724,18 +724,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, trustiRecs, bookmarks])
 
-  // Dismiss review banner when card list is scrolled
-  useEffect(() => {
-    const list = listRef.current
-    if (!list) return
-    const onScroll = () => {
-      if (programmaticScrollRef.current) return
-      setReview(r => r ? { ...r, visible: false } : null)
-      setTimeout(() => setReview(null), 220)
-    }
-    list.addEventListener('scroll', onScroll, { passive: true })
-    return () => list.removeEventListener('scroll', onScroll)
-  }, [])
+  // (scroll no longer dismisses the banner — only map tap or another card tap does)
 
   function openReview(place, type, value) {
     if (review?.placeId === place.placeId && review?.type === type && review?.value === value) {
@@ -865,6 +854,11 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               const cuisinePriceMeta = [cuisine, price].filter(Boolean).join(' • ')
 
               function selectAndPan() {
+                if (review && review.placeId !== place.placeId) {
+                  // Banner is up for a different card — treat as cancel
+                  closeReview()
+                  return
+                }
                 setSelectedPlaceId(place.placeId)
                 if (place.lat != null && place.lng != null && mapInstanceRef.current) {
                   skipNextIdleRef.current = true
@@ -890,7 +884,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     overflow: 'hidden',
                     background: '#263347',
                     outline: isSelected ? '2px solid #3b82f6' : 'none',
-                    outlineOffset: '-2px',
+                    outlineOffset: review?.placeId === place.placeId ? '2px' : '-2px',
                     transition: 'outline 0.3s ease',
                   }}
                 >
@@ -1051,7 +1045,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               gap: 8,
               alignItems: 'center',
               boxShadow: '0 -4px 24px rgba(0,0,0,0.55)',
-              border: '1px solid rgba(255,255,255,0.13)',
+              border: '1px solid rgba(255,255,255,0.35)',
               borderBottom: 'none',
             }}>
               <button
