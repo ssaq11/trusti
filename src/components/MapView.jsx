@@ -894,17 +894,13 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                   data-place-id={place.placeId}
                   ref={el => { cardRefs.current[place.placeId] = el }}
                   style={{
-                    position: 'relative',
-                    display: 'flex',
-                    height: 72,
                     borderRadius: 12,
-                    overflow: 'hidden',
-                    background: '#263347',
                     outline: isSelected ? '2px solid #3b82f6' : 'none',
-                    outlineOffset: review?.placeId === place.placeId ? '2px' : '-2px',
+                    outlineOffset: '2px',
                     transition: 'outline 0.3s ease',
                   }}
                 >
+                <div style={{ position: 'relative', display: 'flex', height: 72, borderRadius: 12, overflow: 'hidden', background: '#263347' }}>
                   {/* LEFT HALF button — spans full card width so text flows freely */}
                   <button
                     onClick={selectAndPan}
@@ -1015,7 +1011,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       {review.value === 'green' ? 'go! 👍' : review.value === 'yellow' ? 'meh... 😑' : '-skip- 😞'}
                     </div>
                   )}
-                </div>
+                </div>{/* inner card */}
+                </div>{/* wrapper */}
               )
             })}
           </div>
