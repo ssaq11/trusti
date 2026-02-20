@@ -997,36 +997,41 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       }}
                       onClick={e => e.stopPropagation()}
                     >
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'try') }}
-                        className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                          review?.placeId === place.placeId && review?.value === 'try'
-                            ? 'bg-green-500/20 text-green-400'
-                            : 'text-gray-500 bg-transparent'
-                        }`}
-                      >
-                        <Flag size={15} />
+                      <div className="relative inline-flex flex-col items-center">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'try') }}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                            review?.placeId === place.placeId && review?.value === 'try'
+                              ? 'bg-green-500/20 text-green-400'
+                              : 'text-gray-500 bg-transparent'
+                          }`}
+                        >
+                          <Flag size={15} />
+                        </button>
                         {review?.placeId === place.placeId && review?.value === 'try' && (
-                          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[11px] font-medium tracking-wide bg-slate-800/60 backdrop-blur-lg border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-top-2 duration-200 ease-out whitespace-nowrap z-50 text-green-400 pointer-events-none">
+                          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wide bg-[#0B1120]/90 backdrop-blur-md border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-1 duration-200 ease-out whitespace-nowrap z-50 text-green-400 pointer-events-none">
                             want to go!
                           </div>
                         )}
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'pass') }}
-                        className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                          review?.placeId === place.placeId && review?.value === 'pass'
-                            ? 'bg-red-500/20 text-red-400'
-                            : 'text-gray-500 bg-transparent'
-                        }`}
-                      >
-                        <AlertTriangle size={15} />
+                      </div>
+
+                      <div className="relative inline-flex flex-col items-center">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'pass') }}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                            review?.placeId === place.placeId && review?.value === 'pass'
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'text-gray-500 bg-transparent'
+                          }`}
+                        >
+                          <AlertTriangle size={15} />
+                        </button>
                         {review?.placeId === place.placeId && review?.value === 'pass' && (
-                          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[11px] font-medium tracking-wide bg-slate-800/60 backdrop-blur-lg border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-top-2 duration-200 ease-out whitespace-nowrap z-50 text-red-400 pointer-events-none">
+                          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wide bg-[#0B1120]/90 backdrop-blur-md border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-1 duration-200 ease-out whitespace-nowrap z-50 text-red-400 pointer-events-none">
                             heard some things...
                           </div>
                         )}
-                      </button>
+                      </div>
                     </div>
 
                   </div>

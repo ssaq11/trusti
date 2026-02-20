@@ -43,8 +43,13 @@
   animation-name: zoomIn;
 }
 
-.slide-in-from-top-2 {
-  animation-name: slideInFromTop;
+@keyframes slideInFromTopSmall {
+  from { transform: translateY(-0.25rem) translateX(-50%); opacity: 0; }
+  to { transform: translateY(0) translateX(-50%); opacity: 1; }
+}
+
+.slide-in-from-top-1 {
+  animation-name: slideInFromTopSmall;
 }
 
 .duration-200 {
