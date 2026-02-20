@@ -747,9 +747,11 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
     setTimeout(() => setReview(r => r ? { ...r, visible: true } : null), 10)
   }
 
-  function closeReview() {
+  function closeReview({ skipRestore = false } = {}) {
     setReview(r => r ? { ...r, visible: false } : null)
-    listRef.current?.scrollTo({ top: savedScrollRef.current, behavior: 'smooth' })
+    if (!skipRestore) {
+      listRef.current?.scrollTo({ top: savedScrollRef.current, behavior: 'smooth' })
+    }
     setTimeout(() => setReview(null), 220)
   }
 
@@ -769,7 +771,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   return (
     <div className="flex flex-col h-full">
       {/* Map with buttons */}
-      <div className="relative flex-1 min-h-0">
+      <div className="relative flex-1 min-h-0 overflow-hidden">
         <div
           ref={mapRef}
           className="w-full h-full overflow-hidden bg-slate-800"
@@ -800,6 +802,52 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
         {loading && (
           <div className="absolute bottom-3 right-3 bg-slate-700 rounded-lg shadow-md p-2">
             <RefreshCw size={16} className="text-green-500 animate-spin" />
+          </div>
+        )}
+
+        {/* Review banner — slides up from map bottom edge */}
+        {review && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 500,
+              transform: review.visible ? 'translateY(0)' : 'translateY(100%)',
+              transition: 'transform 0.22s cubic-bezier(0.2,0,0,1)',
+              pointerEvents: review.visible ? 'auto' : 'none',
+            }}
+          >
+            <div style={{
+              background: '#0d1b33',
+              borderRadius: '12px 12px 0 0',
+              padding: '10px 14px',
+              display: 'flex',
+              gap: 8,
+              alignItems: 'center',
+              boxShadow: '0 -4px 24px rgba(0,0,0,0.6)',
+              border: '2px solid rgba(255,255,255,0.55)',
+            }}>
+              <button
+                onClick={closeReview}
+                style={{ padding: '7px 12px', borderRadius: 7, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 13, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled
+                style={{ padding: '7px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8', fontSize: 13, textAlign: 'center', cursor: 'default', flexShrink: 0 }}
+              >
+                Add intel for friends...
+              </button>
+              <button
+                onClick={postReview}
+                style={{ padding: '7px 20px', borderRadius: 7, background: '#2563eb', border: 'none', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+              >
+                Post
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -845,11 +893,16 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
 
               function selectAndPan() {
                 if (review && review.placeId !== place.placeId) {
-                  // Banner is up for a different card — treat as cancel
-                  closeReview()
-                  return
+                  // Different card tapped — close banner, don't restore old scroll
+                  closeReview({ skipRestore: true })
                 }
                 setSelectedPlaceId(place.placeId)
+                const list = listRef.current
+                const cardEl = cardRefs.current[place.placeId]
+                if (list && cardEl) {
+                  const cardOffsetInList = cardEl.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop
+                  list.scrollTo({ top: cardOffsetInList, behavior: 'smooth' })
+                }
                 if (place.lat != null && place.lng != null && mapInstanceRef.current) {
                   skipNextIdleRef.current = true
                   mapInstanceRef.current.panTo({ lat: place.lat, lng: place.lng })
@@ -1004,52 +1057,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
         />
       )}
 
-      {/* Inline review banner — fixed, pinned to card top via scroll sync */}
-      {review && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: 500,
-            transform: review.visible ? 'translateY(0)' : 'translateY(100%)',
-            transition: 'transform 0.22s cubic-bezier(0.2,0,0,1)',
-            pointerEvents: review.visible ? 'auto' : 'none',
-          }}
-        >
-          <div style={{
-            background: '#0d1b33',
-            borderRadius: '12px 12px 0 0',
-            padding: '10px 14px',
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
-            boxShadow: '0 -4px 24px rgba(0,0,0,0.6)',
-            border: '2px solid rgba(255,255,255,0.55)',
-            borderBottom: 'none',
-          }}>
-            <button
-              onClick={closeReview}
-              style={{ padding: '7px 12px', borderRadius: 7, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 13, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}
-            >
-              Cancel
-            </button>
-            <button
-              disabled
-              style={{ padding: '7px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8', fontSize: 13, textAlign: 'center', cursor: 'default', flexShrink: 0 }}
-            >
-              Add intel for friends...
-            </button>
-            <button
-              onClick={postReview}
-              style={{ padding: '7px 20px', borderRadius: 7, background: '#2563eb', border: 'none', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
-            >
-              Post
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
