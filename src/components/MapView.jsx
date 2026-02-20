@@ -1052,13 +1052,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       onColorClick={(color) => openReview(place, 'light', color)}
                     />
                   </div>
-
-                  {/* Label under traffic light */}
-                  {review?.placeId === place.placeId && review?.type === 'light' && (
-                    <div style={{ position: 'absolute', top: 36, right: 6, whiteSpace: 'nowrap', textAlign: 'right', fontSize: 28, fontWeight: 800, color: review.value === 'green' ? '#4ade80' : review.value === 'yellow' ? '#facc15' : '#f87171', pointerEvents: 'none' }}>
-                      {review.value === 'green' ? 'go! 👍' : review.value === 'yellow' ? 'meh... 😑' : '-skip- 😞'}
-                    </div>
-                  )}
                 </div>
               )
             })}
