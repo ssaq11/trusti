@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Navigation, RefreshCw, Flag, Ban } from 'lucide-react'
+import { Navigation, RefreshCw, Flag, Ban, AlertTriangle } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 import TrafficLight from './TrafficLight'
@@ -989,34 +989,45 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     {/* Try / Pass flags — dims (not locked) when a light is active */}
                     <div
                       style={{
-                        position: 'absolute', top: 4, left: 6, display: 'flex', gap: 8,
+                        position: 'absolute', top: 4, left: 6, display: 'flex', gap: 6,
                         opacity: review?.placeId === place.placeId && review?.type === 'light' ? 0.35 : 1,
                         transition: 'opacity 0.15s',
+                        alignItems: 'center',
+                        height: 32
                       }}
                       onClick={e => e.stopPropagation()}
                     >
                       <button
                         onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'try') }}
-                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: review?.placeId === place.placeId && review?.value === 'try' ? 'rgba(34,197,94,0.3)' : 'rgba(34,197,94,0.12)', border: 'none', cursor: 'pointer', color: '#4ade80', transition: 'all 0.15s', opacity: review?.placeId === place.placeId && review?.type === 'flag' && review?.value === 'pass' ? 0.35 : 1 }}
-                        title="Want to go"
+                        className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                          review?.placeId === place.placeId && review?.value === 'try'
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'text-gray-500 bg-transparent'
+                        }`}
                       >
-                        <Flag size={13} />
+                        <Flag size={15} />
+                        {review?.placeId === place.placeId && review?.value === 'try' && (
+                          <div className="absolute -top-10 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-[#0B1120]/80 backdrop-blur-md border border-white/10 shadow-lg animate-in fade-in zoom-in duration-200 ease-out whitespace-nowrap z-50 text-green-400">
+                            Want to go
+                          </div>
+                        )}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'pass') }}
-                        style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: review?.placeId === place.placeId && review?.value === 'pass' ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.12)', border: 'none', cursor: 'pointer', color: '#f87171', transition: 'all 0.15s', opacity: review?.placeId === place.placeId && review?.type === 'flag' && review?.value === 'try' ? 0.35 : 1 }}
-                        title="I'll pass"
+                        className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                          review?.placeId === place.placeId && review?.value === 'pass'
+                            ? 'bg-red-500/20 text-red-400'
+                            : 'text-gray-500 bg-transparent'
+                        }`}
                       >
-                        <Ban size={13} />
+                        <AlertTriangle size={15} />
+                        {review?.placeId === place.placeId && review?.value === 'pass' && (
+                          <div className="absolute -top-10 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-[#0B1120]/80 backdrop-blur-md border border-white/10 shadow-lg animate-in fade-in zoom-in duration-200 ease-out whitespace-nowrap z-50 text-red-400">
+                            Heard things
+                          </div>
+                        )}
                       </button>
                     </div>
-
-                    {/* Label under flags */}
-                    {review?.placeId === place.placeId && review?.type === 'flag' && (
-                      <div style={{ position: 'absolute', top: 33, left: 6, whiteSpace: 'nowrap', fontSize: 28, fontWeight: 800, color: review.value === 'try' ? '#4ade80' : '#f87171', pointerEvents: 'none' }}>
-                        {review.value === 'try' ? 'want to chk it out! 🚩' : 'no interest 🚫'}
-                      </div>
-                    )}
 
                   </div>
 

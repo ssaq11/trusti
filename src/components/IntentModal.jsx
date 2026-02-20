@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Flag, Ban } from 'lucide-react'
+import { X, Flag, AlertTriangle } from 'lucide-react'
 
 export default function IntentModal({ place, initialType = 'try', onClose, onSubmit }) {
   const [type, setType] = useState(initialType)
@@ -49,8 +49,8 @@ export default function IntentModal({ place, initialType = 'try', onClose, onSub
                 : 'bg-slate-800 text-slate-400 hover:text-white'
             }`}
           >
-            <Ban size={15} />
-            I'll pass
+            <AlertTriangle size={15} />
+            Heard things
           </button>
         </div>
 
