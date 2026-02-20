@@ -892,6 +892,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               const cuisine = getCuisineLabel(place.types || [])
               const price = getPriceLabel(place.priceLevel)
               const cuisinePriceMeta = [cuisine, price].filter(Boolean).join(' • ')
+              const isEditingThis = review?.placeId === place.placeId
 
               function selectAndPan() {
                 if (review && review.placeId !== place.placeId) {
@@ -1050,6 +1051,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       size="card-h"
                       direction="row"
                       onColorClick={(color) => openReview(place, 'light', color)}
+                      userSelection={isEditingThis && review?.type === 'light' ? review.value : null}
+                      isEditing={isEditingThis}
                     />
                   </div>
                 </div>
