@@ -928,8 +928,9 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     borderRadius: 12,
                     overflow: 'hidden',
                     background: '#263347',
-                    boxShadow: isSelected ? 'inset 0 0 0 2px #3b82f6' : 'none',
-                    transition: 'box-shadow 0.3s ease',
+                    outline: isSelected ? '2px solid #3b82f6' : 'none',
+                    outlineOffset: -2,
+                    transition: 'outline 0.3s ease',
                   }}
                 >
                   {/* LEFT HALF button — spans full card width so text flows freely */}
