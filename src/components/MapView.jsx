@@ -746,8 +746,9 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
       setReview(r => r ? { ...r, type, value } : null)
       return
     }
-    // New card — slide banner up
+    // New card — slide banner up, move card to top
     setReview({ placeId: place.placeId, type, value, visible: false })
+    listRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     setTimeout(() => setReview(r => r ? { ...r, visible: true } : null), 10)
   }
 
@@ -837,7 +838,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
 
         {places.length > 0 && (
           <div className="space-y-1.5">
-            {places.map(place => {
+            {(review ? [places.find(p => p.placeId === review.placeId), ...places.filter(p => p.placeId !== review.placeId)].filter(Boolean) : places).map(place => {
               const placeReviews = trustiRecs.filter(r => r.restaurantPlaceId === place.placeId)
               const counts = getDeduplicatedCounts(placeReviews)
               const isBookmarked = bookmarks.some(b => b.placeId === place.placeId)
@@ -956,8 +957,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
 
                     {/* Label under flags */}
                     {review?.placeId === place.placeId && review?.type === 'flag' && (
-                      <div style={{ position: 'absolute', top: 33, left: 6, whiteSpace: 'nowrap', fontSize: 14, fontWeight: 700, color: review.value === 'try' ? '#4ade80' : '#f87171', pointerEvents: 'none' }}>
-                        {review.value === 'try' ? '🚩 Want to try' : '🚫 No interest'}
+                      <div style={{ position: 'absolute', top: 33, left: 6, whiteSpace: 'nowrap', fontSize: 28, fontWeight: 800, color: review.value === 'try' ? '#4ade80' : '#f87171', pointerEvents: 'none' }}>
+                        {review.value === 'try' ? 'want to chk it out! 🚩' : 'no interest 🚫'}
                       </div>
                     )}
 
@@ -982,8 +983,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
 
                   {/* Label under traffic light */}
                   {review?.placeId === place.placeId && review?.type === 'light' && (
-                    <div style={{ position: 'absolute', top: 36, right: 6, width: 92, textAlign: 'center', fontSize: 14, fontWeight: 700, color: review.value === 'green' ? '#4ade80' : review.value === 'yellow' ? '#facc15' : '#f87171', pointerEvents: 'none' }}>
-                      {review.value === 'green' ? '👍 Go!' : review.value === 'yellow' ? '😑 Meh' : '😞 Pass'}
+                    <div style={{ position: 'absolute', top: 36, right: 6, whiteSpace: 'nowrap', textAlign: 'right', fontSize: 28, fontWeight: 800, color: review.value === 'green' ? '#4ade80' : review.value === 'yellow' ? '#facc15' : '#f87171', pointerEvents: 'none' }}>
+                      {review.value === 'green' ? 'go! 👍' : review.value === 'yellow' ? 'meh... 😑' : '-skip- 😞'}
                     </div>
                   )}
                 </div>
@@ -1021,6 +1022,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               transform: review.visible ? 'translateY(0)' : 'translateY(100%)',
               transition: 'transform 0.22s cubic-bezier(0.2,0,0,1)',
               pointerEvents: review.visible ? 'auto' : 'none',
+              display: 'flex',
+              justifyContent: 'center',
             }}
           >
             <div style={{
@@ -1031,6 +1034,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               gap: 8,
               alignItems: 'center',
               boxShadow: '0 -4px 24px rgba(0,0,0,0.55)',
+              border: '1px solid rgba(255,255,255,0.13)',
+              borderBottom: 'none',
             }}>
               <button
                 onClick={closeReview}
@@ -1040,7 +1045,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               </button>
               <button
                 disabled
-                style={{ flex: 1, padding: '7px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#475569', fontSize: 12, textAlign: 'left', cursor: 'default' }}
+                style={{ padding: '7px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8', fontSize: 13, textAlign: 'center', cursor: 'default', flexShrink: 0 }}
               >
                 Add intel for friends...
               </button>
