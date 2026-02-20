@@ -39,7 +39,7 @@ export default function IntentModal({ place, initialType = 'try', onClose, onSub
             }`}
           >
             <Flag size={15} />
-            Want to go
+            want to go!
           </button>
           <button
             onClick={() => setType('pass')}
@@ -50,7 +50,7 @@ export default function IntentModal({ place, initialType = 'try', onClose, onSub
             }`}
           >
             <AlertTriangle size={15} />
-            Heard things
+            heard some things...
           </button>
         </div>
 
