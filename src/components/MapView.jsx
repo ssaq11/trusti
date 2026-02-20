@@ -199,8 +199,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   const [intentModal, setIntentModal] = useState(null) // null | { place, type }
   const [review, setReview] = useState(null) // null | { placeId, type:'light'|'flag', value, visible }
   const cardRefs = useRef({})
-  const bannerRef = useRef(null)
-  const programmaticScrollRef = useRef(false)
   const savedScrollRef = useRef(0)
 
   // Highlight the selected marker — scale up dot + border ring
@@ -725,24 +723,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, trustiRecs, bookmarks])
 
-  // Keep banner pinned to card top as user scrolls
-  useEffect(() => {
-    if (!review) return
-    const list = listRef.current
-    if (!list) return
-    const sync = () => {
-      const bannerEl = bannerRef.current
-      const cardEl = cardRefs.current[review.placeId]
-      if (!bannerEl || !cardEl) return
-      const rect = cardEl.getBoundingClientRect()
-      bannerEl.style.bottom = `${window.innerHeight - rect.top}px`
-      bannerEl.style.left = `${rect.left}px`
-      bannerEl.style.width = `${rect.width}px`
-    }
-    list.addEventListener('scroll', sync, { passive: true })
-    return () => list.removeEventListener('scroll', sync)
-  }, [review?.placeId])
-
   function openReview(place, type, value) {
     if (review?.placeId === place.placeId && review?.type === type && review?.value === value) {
       // Same element tapped again — deselect and close
@@ -754,7 +734,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
       setReview(r => r ? { ...r, type, value } : null)
       return
     }
-    // New card — highlight it, save scroll pos, scroll card to top of viewport
+    // New card — highlight it, save scroll pos, scroll card to top of list
     setSelectedPlaceId(place.placeId)
     setReview({ placeId: place.placeId, type, value, visible: false })
     const list = listRef.current
@@ -762,21 +742,14 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
     if (list && cardEl) {
       savedScrollRef.current = list.scrollTop
       const cardOffsetInList = cardEl.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop
-      programmaticScrollRef.current = true
       list.scrollTo({ top: cardOffsetInList, behavior: 'smooth' })
-      setTimeout(() => { programmaticScrollRef.current = false }, 600)
     }
     setTimeout(() => setReview(r => r ? { ...r, visible: true } : null), 10)
   }
 
   function closeReview() {
     setReview(r => r ? { ...r, visible: false } : null)
-    const list = listRef.current
-    if (list) {
-      programmaticScrollRef.current = true
-      list.scrollTo({ top: savedScrollRef.current, behavior: 'smooth' })
-      setTimeout(() => { programmaticScrollRef.current = false }, 600)
-    }
+    listRef.current?.scrollTo({ top: savedScrollRef.current, behavior: 'smooth' })
     setTimeout(() => setReview(null), 220)
   }
 
@@ -1032,59 +1005,51 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
       )}
 
       {/* Inline review banner — fixed, pinned to card top via scroll sync */}
-      {review && (() => {
-        const cardEl = cardRefs.current[review.placeId]
-        const rect = cardEl?.getBoundingClientRect()
-        if (!rect) return null
-        return (
-          <div
-            ref={bannerRef}
-            style={{
-              position: 'fixed',
-              left: rect.left,
-              width: rect.width,
-              bottom: window.innerHeight - rect.top,
-              zIndex: 500,
-              transform: review.visible ? 'translateY(0)' : 'translateY(100%)',
-              transition: 'transform 0.22s cubic-bezier(0.2,0,0,1)',
-              pointerEvents: review.visible ? 'auto' : 'none',
-              display: 'flex',
-              justifyContent: 'center',
-            }}
-          >
-            <div style={{
-              background: '#0d1b33',
-              borderRadius: '10px 10px 0 0',
-              padding: '8px 10px',
-              display: 'flex',
-              gap: 8,
-              alignItems: 'center',
-              boxShadow: '0 -4px 24px rgba(0,0,0,0.55)',
-              border: '2px solid rgba(255,255,255,0.55)',
-              borderBottom: 'none',
-            }}>
-              <button
-                onClick={closeReview}
-                style={{ padding: '7px 12px', borderRadius: 7, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 13, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}
-              >
-                Cancel
-              </button>
-              <button
-                disabled
-                style={{ padding: '7px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8', fontSize: 13, textAlign: 'center', cursor: 'default', flexShrink: 0 }}
-              >
-                Add intel for friends...
-              </button>
-              <button
-                onClick={postReview}
-                style={{ padding: '7px 20px', borderRadius: 7, background: '#2563eb', border: 'none', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
-              >
-                Post
-              </button>
-            </div>
+      {review && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 500,
+            transform: review.visible ? 'translateY(0)' : 'translateY(100%)',
+            transition: 'transform 0.22s cubic-bezier(0.2,0,0,1)',
+            pointerEvents: review.visible ? 'auto' : 'none',
+          }}
+        >
+          <div style={{
+            background: '#0d1b33',
+            borderRadius: '12px 12px 0 0',
+            padding: '10px 14px',
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+            boxShadow: '0 -4px 24px rgba(0,0,0,0.6)',
+            border: '2px solid rgba(255,255,255,0.55)',
+            borderBottom: 'none',
+          }}>
+            <button
+              onClick={closeReview}
+              style={{ padding: '7px 12px', borderRadius: 7, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 13, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}
+            >
+              Cancel
+            </button>
+            <button
+              disabled
+              style={{ padding: '7px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8', fontSize: 13, textAlign: 'center', cursor: 'default', flexShrink: 0 }}
+            >
+              Add intel for friends...
+            </button>
+            <button
+              onClick={postReview}
+              style={{ padding: '7px 20px', borderRadius: 7, background: '#2563eb', border: 'none', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+            >
+              Post
+            </button>
           </div>
-        )
-      })()}
+        </div>
+      )}
     </div>
   )
 }
