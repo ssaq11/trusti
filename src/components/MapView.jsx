@@ -1037,8 +1037,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       {review.value === 'green' ? 'go! 👍' : review.value === 'yellow' ? 'meh... 😑' : '-skip- 😞'}
                     </div>
                   )}
-                </div>{/* inner card */}
-                </div>{/* wrapper */}
+                </div>
+                </div>
               )
             })}
           </div>
