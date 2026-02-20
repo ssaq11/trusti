@@ -199,6 +199,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   const [intentModal, setIntentModal] = useState(null) // null | { place, type }
   const [review, setReview] = useState(null) // null | { placeId, type:'light'|'flag', value, visible }
   const cardRefs = useRef({})
+  const programmaticScrollRef = useRef(false)
 
   // Highlight the selected marker — scale up dot + border ring
   useEffect(() => {
@@ -727,6 +728,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
     const list = listRef.current
     if (!list) return
     const onScroll = () => {
+      if (programmaticScrollRef.current) return
       setReview(r => r ? { ...r, visible: false } : null)
       setTimeout(() => setReview(null), 220)
     }
@@ -748,7 +750,9 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
     }
     // New card — slide banner up, move card to top
     setReview({ placeId: place.placeId, type, value, visible: false })
+    programmaticScrollRef.current = true
     listRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    setTimeout(() => { programmaticScrollRef.current = false }, 600)
     setTimeout(() => setReview(r => r ? { ...r, visible: true } : null), 10)
   }
 
