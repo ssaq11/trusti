@@ -199,6 +199,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   const [intentModal, setIntentModal] = useState(null) // null | { place, type }
   const [review, setReview] = useState(null) // null | { placeId, type:'light'|'flag', value, visible }
   const cardRefs = useRef({})
+  const bannerRef = useRef(null)
   const programmaticScrollRef = useRef(false)
   const savedScrollRef = useRef(0)
 
@@ -724,7 +725,23 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, trustiRecs, bookmarks])
 
-  // (scroll no longer dismisses the banner — only map tap or another card tap does)
+  // Keep banner pinned to card top as user scrolls
+  useEffect(() => {
+    if (!review) return
+    const list = listRef.current
+    if (!list) return
+    const sync = () => {
+      const bannerEl = bannerRef.current
+      const cardEl = cardRefs.current[review.placeId]
+      if (!bannerEl || !cardEl) return
+      const rect = cardEl.getBoundingClientRect()
+      bannerEl.style.bottom = `${window.innerHeight - rect.top}px`
+      bannerEl.style.left = `${rect.left}px`
+      bannerEl.style.width = `${rect.width}px`
+    }
+    list.addEventListener('scroll', sync, { passive: true })
+    return () => list.removeEventListener('scroll', sync)
+  }, [review?.placeId])
 
   function openReview(place, type, value) {
     if (review?.placeId === place.placeId && review?.type === type && review?.value === value) {
@@ -1017,13 +1034,14 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
         />
       )}
 
-      {/* Inline review banner — slides up from the active card's top edge */}
+      {/* Inline review banner — fixed, pinned to card top via scroll sync */}
       {review && (() => {
         const cardEl = cardRefs.current[review.placeId]
         const rect = cardEl?.getBoundingClientRect()
         if (!rect) return null
         return (
           <div
+            ref={bannerRef}
             style={{
               position: 'fixed',
               left: rect.left,
@@ -1045,7 +1063,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               gap: 8,
               alignItems: 'center',
               boxShadow: '0 -4px 24px rgba(0,0,0,0.55)',
-              border: '1px solid rgba(255,255,255,0.35)',
+              border: '2px solid rgba(255,255,255,0.55)',
               borderBottom: 'none',
             }}>
               <button
