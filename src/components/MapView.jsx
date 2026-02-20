@@ -1007,7 +1007,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       >
                         <Flag size={15} />
                         {review?.placeId === place.placeId && review?.value === 'try' && (
-                          <div className="absolute -top-10 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-[#0B1120]/80 backdrop-blur-md border border-white/10 shadow-lg animate-in fade-in zoom-in duration-200 ease-out whitespace-nowrap z-50 text-green-400">
+                          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-[#0B1120]/90 backdrop-blur-md border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 ease-out whitespace-nowrap z-50 text-green-400 pointer-events-none">
                             Want to go
                           </div>
                         )}
@@ -1022,7 +1022,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       >
                         <AlertTriangle size={15} />
                         {review?.placeId === place.placeId && review?.value === 'pass' && (
-                          <div className="absolute -top-10 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-[#0B1120]/80 backdrop-blur-md border border-white/10 shadow-lg animate-in fade-in zoom-in duration-200 ease-out whitespace-nowrap z-50 text-red-400">
+                          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-[#0B1120]/90 backdrop-blur-md border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 ease-out whitespace-nowrap z-50 text-red-400 pointer-events-none">
                             Heard things
                           </div>
                         )}

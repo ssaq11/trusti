@@ -20,6 +20,11 @@
   to { transform: scale(1); opacity: 1; }
 }
 
+@keyframes slideInFromTop {
+  from { transform: translateY(-0.5rem) translateX(-50%); opacity: 0; }
+  to { transform: translateY(0) translateX(-50%); opacity: 1; }
+}
+
 .animate-slide-up {
   animation: slideUp 0.25s ease-out;
 }
@@ -36,6 +41,10 @@
 
 .zoom-in {
   animation-name: zoomIn;
+}
+
+.slide-in-from-top-2 {
+  animation-name: slideInFromTop;
 }
 
 .duration-200 {
