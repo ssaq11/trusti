@@ -833,34 +833,68 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               pointerEvents: review.visible ? 'auto' : 'none',
             }}
           >
-            <div style={{
-              background: '#0d1b33',
-              borderRadius: '12px 12px 0 0',
-              padding: '10px 14px',
-              display: 'flex',
-              gap: 8,
-              alignItems: 'center',
-              boxShadow: '0 -4px 24px rgba(0,0,0,0.6)',
-              border: '2px solid rgba(255,255,255,0.55)',
-            }}>
-              <button
-                onClick={closeReview}
-                style={{ padding: '7px 12px', borderRadius: 7, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 13, fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}
-              >
-                Cancel
-              </button>
-              <button
-                disabled
-                style={{ padding: '7px 10px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8', fontSize: 13, textAlign: 'center', cursor: 'default', flexShrink: 0 }}
-              >
-                Add intel for friends...
-              </button>
-              <button
-                onClick={postReview}
-                style={{ padding: '7px 20px', borderRadius: 7, background: '#2563eb', border: 'none', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
-              >
-                Post
-              </button>
+            <div
+              style={{ borderTopColor: INTEL_DATA[review?.value]?.borderColor || '#3b82f6' }}
+              className="bg-[#0d1b33] rounded-t-2xl p-4 w-full shadow-[0_-4px_24px_rgba(0,0,0,0.6)] border-t-4 border-white/20 flex flex-col gap-3"
+            >
+              {/* Selected chips row */}
+              {selectedChips.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedChips.map(chip => (
+                    <button
+                      key={chip}
+                      onClick={() => setSelectedChips(prev => prev.filter(c => c !== chip))}
+                      className="px-3 py-1.5 rounded-full text-[13px] font-medium flex items-center gap-1.5 bg-white/15 border border-white/30 text-white"
+                    >
+                      {chip} <span className="text-white/50 text-xs">×</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Unselected chips - horizontal scroll */}
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {(INTEL_DATA[review?.value]?.chips || [])
+                  .filter(chip => !selectedChips.includes(chip))
+                  .map(chip => (
+                    <button
+                      key={chip}
+                      onClick={() => setSelectedChips(prev => [...prev, chip])}
+                      className="px-3 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 flex-shrink-0"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+              </div>
+
+              {/* Textarea */}
+              <textarea
+                value={reviewText}
+                onChange={e => setReviewText(e.target.value)}
+                onInput={e => {
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(e.target.scrollHeight, 144) + 'px';
+                }}
+                placeholder={INTEL_DATA[review?.value]?.placeholder || "Add intel..."}
+                className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+                style={{ minHeight: '96px' }}
+              />
+
+              {/* Slip-protection overlay behind chips — tight, not full map */}
+              <div className="absolute bottom-[160px] left-0 right-0 h-10 z-[499]" />
+
+              {/* Actions */}
+              <div className="flex justify-between items-center pt-1">
+                <button onClick={closeReview} className="px-4 py-2 rounded-lg bg-white/5 text-slate-400 text-sm font-medium hover:text-white transition-colors">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => postReview({ text: reviewText, chips: selectedChips })}
+                  className="px-6 py-2 rounded-lg bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95"
+                >
+                  Post
+                </button>
+              </div>
             </div>
           </div>
         )}
