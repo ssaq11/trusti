@@ -848,7 +848,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       style={{ touchAction: 'manipulation' }}
                       className={`px-2.5 py-1 rounded-full text-[12px] font-medium border ${
                         isSelected
-                          ? 'bg-[#1a73e8]/30 border-[#1a73e8] text-[#1a73e8]'
+                          ? 'bg-[#1a73e8]/30 border-[#1a73e8] text-white'
                           : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
                       }`}
                     >
