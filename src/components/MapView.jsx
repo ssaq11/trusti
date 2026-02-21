@@ -835,7 +835,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
           >
             <div
               style={{ borderTopColor: INTEL_DATA[review?.value]?.borderColor || '#3b82f6' }}
-              className="bg-[#0d1b33] rounded-t-2xl p-4 w-full shadow-[0_-4px_24px_rgba(0,0,0,0.6)] border-t-4 border-white/20 flex flex-col gap-3"
+              className="bg-[#0d1b33] rounded-t-2xl p-3 pb-2 w-full shadow-[0_-4px_24px_rgba(0,0,0,0.6)] border-t-4 border-white/20 flex flex-col gap-2"
             >
               {/* Selected chips row */}
               {selectedChips.length > 0 && (
@@ -844,7 +844,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     <button
                       key={chip}
                       onClick={() => setSelectedChips(prev => prev.filter(c => c !== chip))}
-                      className="px-3 py-1.5 rounded-full text-[13px] font-medium flex items-center gap-1.5 bg-white/15 border border-white/30 text-white"
+                      className="px-2.5 py-1 rounded-full text-[12px] font-medium flex items-center gap-1.5 bg-white/15 border border-white/30 text-white"
                     >
                       {chip} <span className="text-white/50 text-xs">×</span>
                     </button>
@@ -853,14 +853,14 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               )}
 
               {/* Unselected chips - horizontal scroll */}
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              <div className="flex flex-wrap gap-1.5">
                 {(INTEL_DATA[review?.value]?.chips || [])
                   .filter(chip => !selectedChips.includes(chip))
                   .map(chip => (
                     <button
                       key={chip}
                       onClick={() => setSelectedChips(prev => [...prev, chip])}
-                      className="px-3 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 flex-shrink-0"
+                      className="px-2.5 py-1 rounded-full text-[12px] font-medium bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
                     >
                       {chip}
                     </button>
@@ -877,20 +877,20 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                 }}
                 placeholder={INTEL_DATA[review?.value]?.placeholder || "Add intel..."}
                 className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
-                style={{ minHeight: '96px' }}
+                style={{ minHeight: '72px' }}
               />
 
               {/* Slip-protection overlay behind chips — tight, not full map */}
               <div className="absolute bottom-[160px] left-0 right-0 h-10 z-[499]" />
 
               {/* Actions */}
-              <div className="flex justify-between items-center pt-1">
-                <button onClick={closeReview} className="px-4 py-2 rounded-lg bg-white/5 text-slate-400 text-sm font-medium hover:text-white transition-colors">
+              <div className="flex justify-between items-center pt-0">
+                <button onClick={closeReview} className="px-3 py-1.5 rounded-lg bg-white/5 text-slate-400 text-sm font-medium hover:text-white transition-colors">
                   Cancel
                 </button>
                 <button
                   onClick={() => postReview({ text: reviewText, chips: selectedChips })}
-                  className="px-6 py-2 rounded-lg bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95"
+                  className="px-3 py-1.5 rounded-lg bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95"
                 >
                   Post
                 </button>
