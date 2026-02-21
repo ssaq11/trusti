@@ -837,34 +837,25 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               style={{ borderTopColor: INTEL_DATA[review?.value]?.borderColor || '#3b82f6' }}
               className="bg-[#0d1b33] rounded-t-2xl p-3 pb-2 w-full shadow-[0_-4px_24px_rgba(0,0,0,0.6)] border-t-4 border-white/20 flex flex-col gap-2"
             >
-              {/* Selected chips row */}
-              {selectedChips.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedChips.map(chip => (
-                    <button
-                      key={chip}
-                      onClick={() => setSelectedChips(prev => prev.filter(c => c !== chip))}
-                      className="px-2.5 py-1 rounded-full text-[12px] font-medium flex items-center gap-1.5 bg-white/15 border border-white/30 text-white"
-                    >
-                      {chip} <span className="text-white/50 text-xs">×</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Unselected chips - horizontal scroll */}
+              {/* Chips — all in one row, toggle selected state */}
               <div className="flex flex-wrap gap-1.5">
-                {(INTEL_DATA[review?.value]?.chips || [])
-                  .filter(chip => !selectedChips.includes(chip))
-                  .map(chip => (
+                {(INTEL_DATA[review?.value]?.chips || []).map(chip => {
+                  const isSelected = selectedChips.includes(chip)
+                  return (
                     <button
                       key={chip}
-                      onClick={() => setSelectedChips(prev => [...prev, chip])}
-                      className="px-2.5 py-1 rounded-full text-[12px] font-medium bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
+                      onClick={() => setSelectedChips(prev => prev.includes(chip) ? prev.filter(c => c !== chip) : [...prev, chip])}
+                      style={{ touchAction: 'manipulation' }}
+                      className={`px-2.5 py-1 rounded-full text-[12px] font-medium border ${
+                        isSelected
+                          ? 'bg-white/15 border-white/30 text-white'
+                          : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                      }`}
                     >
                       {chip}
                     </button>
-                  ))}
+                  )
+                })}
               </div>
 
               {/* Textarea */}
