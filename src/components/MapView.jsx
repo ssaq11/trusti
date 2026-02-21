@@ -848,8 +848,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       style={{ touchAction: 'manipulation' }}
                       className={`px-2.5 py-1 rounded-full text-[12px] font-medium border ${
                         isSelected
-                          ? 'bg-white/15 border-white/30 text-white'
-                          : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                          ? 'bg-[#1a73e8] border-[#1a73e8] text-white'
+                          : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
                       }`}
                     >
                       {chip}
@@ -870,9 +870,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                 className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
                 style={{ minHeight: '72px' }}
               />
-
-              {/* Slip-protection overlay behind chips — tight, not full map */}
-              <div className="absolute bottom-[160px] left-0 right-0 h-10 z-[499]" />
 
               {/* Actions */}
               <div className="flex justify-between items-center pt-0">
