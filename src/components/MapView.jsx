@@ -174,6 +174,14 @@ async function geocodeLocation(query) {
   })
 }
 
+const INTEL_DATA = {
+  green:  { placeholder: "What's the play?...",    borderColor: '#22c55e', chips: ['Hidden gem','Date night','Great cocktails','Must order...','Worth the wait','Incredible vibe'] },
+  yellow: { placeholder: "What's the caveat?...",  borderColor: '#facc15', chips: ['Just okay','Overpriced','Too loud','Slow service','Only if nearby'] },
+  red:    { placeholder: "Save your friends...",   borderColor: '#ef4444', chips: ['Tourist trap','Save your money','Rude staff','Fell off','Skip it'] },
+  try:    { placeholder: "Why is it on radar?...", borderColor: '#4ade80', chips: ['Menu looks fire','Saw on IG','Highly recommended','Need a resy'] },
+  pass:   { placeholder: "What's the warning?...", borderColor: '#f87171', chips: ['Overhyped','Impossible to get in','Sketchy vibe'] }
+}
+
 export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, userIntents = [], onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
@@ -198,6 +206,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   const [selectedPlaceId, setSelectedPlaceId] = useState(null)
   const [intentModal, setIntentModal] = useState(null) // null | { place, type }
   const [review, setReview] = useState(null) // null | { placeId, type:'light'|'flag', value, visible }
+  const [reviewText, setReviewText] = useState('')
+  const [selectedChips, setSelectedChips] = useState([])
   const cardRefs = useRef({})
   const savedScrollRef = useRef(0)
 
@@ -749,6 +759,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
 
   function closeReview({ skipRestore = false } = {}) {
     setReview(r => r ? { ...r, visible: false } : null)
+    setReviewText('')
+    setSelectedChips([])
     if (!skipRestore) {
       listRef.current?.scrollTo({ top: savedScrollRef.current, behavior: 'smooth' })
     }
