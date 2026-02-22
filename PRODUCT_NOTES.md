@@ -41,3 +41,32 @@ Trust-based restaurant recommendation network. "Replacing the text message, not 
 - Hamburger menu (not bottom nav)
 - Custom Trusti markers
 - Chip-based structured tags
+
+## Future Vertical Ideas (Unranked)
+
+### Healthcare
+- Trusti Docs - Doctors, dentists, therapists
+
+### Travel & Hospitality
+- Trusti Stay - Hotels, Airbnbs
+
+### E-commerce
+- Trusti Shop - Product recommendations (counter to fake Amazon reviews)
+
+### Media & Entertainment
+- Trusti Watch/Listen/Read/Play - Movies, TV, music, books, games
+
+### Services
+- Trusti Hire - Freelancers, contractors, service providers
+- Trusti Kids - Daycare, pediatricians, family activities
+- Trusti Learn - Online courses, bootcamps
+
+### Other
+- Trusti Move - Neighborhood recommendations
+- Trusti Date - Friend-vetted dating
+- Trusti Invest - Where friends invest
+
+### Separate Product Concepts
+- Trusti News - Spin-free news aggregator
+
+All verticals would use same core: stoplight ratings, max 10 friends, 200-char reviews
