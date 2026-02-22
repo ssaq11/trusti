@@ -34,6 +34,7 @@ Trust-based restaurant recommendation network. "Replacing the text message, not 
 - Restaurant claim listings
 - Featured placement
 - Consulting service for flagged restaurants
+- Sponsored deals/promos (clearly labeled, separate section, doesn't dilute core trust)
 
 ## Design System
 - Dark mode map, orange accents (Mets)
