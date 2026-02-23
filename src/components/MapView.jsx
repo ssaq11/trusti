@@ -858,42 +858,47 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                 })}
               </div>
 
-              {/* Textarea + Post bottom-right */}
-              <div className="relative">
-                <textarea
-                  value={reviewText}
-                  onChange={e => {
-                    let val = e.target.value;
-                    if (reviewText === '' && val !== '') val = '• ' + val;
-                    setReviewText(val);
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      setReviewText(prev => prev + '\n• ');
+              {/* Counter + Textarea + Post */}
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-end">
+                  <span className="text-[12px] text-slate-400">{reviewText.length}/200</span>
+                </div>
+                <div className="flex gap-2 items-end">
+                  <textarea
+                    rows={2}
+                    value={reviewText}
+                    onChange={e => {
+                      let val = e.target.value;
+                      if (reviewText === '' && val !== '') val = '• ' + val;
+                      setReviewText(val);
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        setReviewText(prev => prev + '\n• ');
+                      }
+                    }}
+                    onInput={e => {
+                      e.target.style.height = 'auto';
+                      e.target.style.height = Math.min(e.target.scrollHeight, 144) + 'px';
+                    }}
+                    placeholder={
+                      review?.value === 'green'
+                        ? "Some tips friends should know?.."
+                        : review?.value === 'yellow' || review?.value === 'red'
+                        ? "Why...got intel for friends?"
+                        : INTEL_DATA[review?.value]?.placeholder || "Add intel..."
                     }
-                  }}
-                  onInput={e => {
-                    e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 144) + 'px';
-                  }}
-                  placeholder={
-                    review?.value === 'green'
-                      ? "Some tips friends should know?.."
-                      : review?.value === 'yellow' || review?.value === 'red'
-                      ? "Why...got intel for friends?"
-                      : INTEL_DATA[review?.value]?.placeholder || "Add intel..."
-                  }
-                  className="w-full bg-black/20 border border-white/10 rounded-xl p-3 pb-10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
-                  style={{ minHeight: '72px' }}
-                />
-                <button
-                  onClick={() => postReview({ text: reviewText, chips: selectedChips })}
-                  style={{ touchAction: 'manipulation' }}
-                  className="absolute bottom-2 right-2 px-4 py-1.5 rounded-lg bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95"
-                >
-                  Post
-                </button>
+                    className="flex-1 bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none overflow-y-auto"
+                  />
+                  <button
+                    onClick={() => postReview({ text: reviewText, chips: selectedChips })}
+                    style={{ touchAction: 'manipulation' }}
+                    className="shrink-0 px-4 py-1.5 rounded-lg bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95"
+                  >
+                    Post
+                  </button>
+                </div>
               </div>
             </div>
           </div>
