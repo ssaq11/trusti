@@ -837,6 +837,35 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               style={{ borderTopColor: INTEL_DATA[review?.value]?.borderColor || '#3b82f6' }}
               className="bg-[#0d1b33] rounded-t-2xl p-3 pb-2 w-full shadow-[0_-4px_24px_rgba(0,0,0,0.6)] border-t-4 border-white/20 flex flex-col gap-2"
             >
+              {/* Textarea */}
+              <textarea
+                value={reviewText}
+                onChange={e => {
+                  let val = e.target.value;
+                  if (reviewText === '' && val !== '') val = '• ' + val;
+                  setReviewText(val);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    setReviewText(prev => prev + '\n• ');
+                  }
+                }}
+                onInput={e => {
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(e.target.scrollHeight, 144) + 'px';
+                }}
+                placeholder={
+                  review?.value === 'green'
+                    ? "Some tips friends should know?.."
+                    : review?.value === 'yellow' || review?.value === 'red'
+                    ? "Why...got intel for friends?"
+                    : INTEL_DATA[review?.value]?.placeholder || "Add intel..."
+                }
+                className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+                style={{ minHeight: '72px' }}
+              />
+
               {/* Chips — all in one row, toggle selected state */}
               <div className="flex flex-wrap gap-1.5">
                 {(INTEL_DATA[review?.value]?.chips || []).map(chip => {
@@ -857,19 +886,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                   )
                 })}
               </div>
-
-              {/* Textarea */}
-              <textarea
-                value={reviewText}
-                onChange={e => setReviewText(e.target.value)}
-                onInput={e => {
-                  e.target.style.height = 'auto';
-                  e.target.style.height = Math.min(e.target.scrollHeight, 144) + 'px';
-                }}
-                placeholder={INTEL_DATA[review?.value]?.placeholder || "Add intel..."}
-                className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
-                style={{ minHeight: '72px' }}
-              />
 
               {/* Actions */}
               <div className="flex justify-between items-center pt-0">
