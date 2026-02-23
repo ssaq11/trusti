@@ -837,8 +837,29 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               style={{ borderTopColor: INTEL_DATA[review?.value]?.borderColor || '#3b82f6' }}
               className="bg-[#0d1b33] rounded-t-2xl p-3 pb-2 w-full shadow-[0_-4px_24px_rgba(0,0,0,0.6)] border-t-4 border-white/20 flex flex-col gap-2"
             >
-              {/* Textarea + Post button side by side */}
-              <div className="flex gap-2 items-start">
+              {/* Chips — above textarea, centered, 2 rows */}
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {(INTEL_DATA[review?.value]?.chips || []).map(chip => {
+                  const isSelected = selectedChips.includes(chip)
+                  return (
+                    <button
+                      key={chip}
+                      onClick={() => setSelectedChips(prev => prev.includes(chip) ? prev.filter(c => c !== chip) : [...prev, chip])}
+                      style={{ touchAction: 'manipulation' }}
+                      className={`px-2.5 py-1 rounded-full text-[12px] font-medium border ${
+                        isSelected
+                          ? 'bg-[#1a73e8]/30 border-[#1a73e8] text-white'
+                          : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                      }`}
+                    >
+                      {chip}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Textarea + Post bottom-right */}
+              <div className="relative">
                 <textarea
                   value={reviewText}
                   onChange={e => {
@@ -863,37 +884,16 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       ? "Why...got intel for friends?"
                       : INTEL_DATA[review?.value]?.placeholder || "Add intel..."
                   }
-                  className="flex-1 bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+                  className="w-full bg-black/20 border border-white/10 rounded-xl p-3 pb-10 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
                   style={{ minHeight: '72px' }}
                 />
                 <button
                   onClick={() => postReview({ text: reviewText, chips: selectedChips })}
                   style={{ touchAction: 'manipulation' }}
-                  className="w-[72px] shrink-0 py-2 rounded-xl bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95 self-start mt-0"
+                  className="absolute bottom-2 right-2 px-4 py-1.5 rounded-lg bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95"
                 >
                   Post
                 </button>
-              </div>
-
-              {/* Chips — all in one row, toggle selected state */}
-              <div className="flex flex-wrap gap-1.5">
-                {(INTEL_DATA[review?.value]?.chips || []).map(chip => {
-                  const isSelected = selectedChips.includes(chip)
-                  return (
-                    <button
-                      key={chip}
-                      onClick={() => setSelectedChips(prev => prev.includes(chip) ? prev.filter(c => c !== chip) : [...prev, chip])}
-                      style={{ touchAction: 'manipulation' }}
-                      className={`px-2.5 py-1 rounded-full text-[12px] font-medium border ${
-                        isSelected
-                          ? 'bg-[#1a73e8]/30 border-[#1a73e8] text-white'
-                          : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
-                      }`}
-                    >
-                      {chip}
-                    </button>
-                  )
-                })}
               </div>
             </div>
           </div>
@@ -1050,7 +1050,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                           className={`w-8 h-8 flex items-center justify-center transition-colors ${
                             review?.placeId === place.placeId && review?.value === 'try'
                               ? 'text-green-400'
-                              : 'text-green-700'
+                              : 'text-green-700 opacity-60'
                           }`}
                         >
                           <Flag size={15} />
@@ -1068,7 +1068,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                           className={`w-8 h-8 flex items-center justify-center transition-colors ${
                             review?.placeId === place.placeId && review?.value === 'pass'
                               ? 'text-red-400'
-                              : 'text-orange-700'
+                              : 'text-orange-700 opacity-60'
                           }`}
                         >
                           <AlertTriangle size={15} />
