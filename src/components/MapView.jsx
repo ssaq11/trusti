@@ -1050,7 +1050,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                           className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
                             review?.placeId === place.placeId && review?.value === 'try'
                               ? 'bg-green-500/20 text-green-400'
-                              : 'text-gray-500 bg-transparent'
+                              : 'text-green-700 bg-green-500/10'
                           }`}
                         >
                           <Flag size={15} />
@@ -1068,7 +1068,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                           className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
                             review?.placeId === place.placeId && review?.value === 'pass'
                               ? 'bg-red-500/20 text-red-400'
-                              : 'text-gray-500 bg-transparent'
+                              : 'text-orange-700 bg-red-500/10'
                           }`}
                         >
                           <AlertTriangle size={15} />
