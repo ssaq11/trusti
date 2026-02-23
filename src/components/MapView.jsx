@@ -835,7 +835,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
           >
             <div
               style={{ borderTopColor: INTEL_DATA[review?.value]?.borderColor || '#3b82f6' }}
-              className="bg-[#0d1b33] rounded-t-2xl p-3 pb-2 w-full shadow-[0_-4px_24px_rgba(0,0,0,0.6)] border-t-4 border-white/20 flex flex-col gap-2"
+              className="bg-[#0d1b33] rounded-t-2xl p-3 pb-2 w-full shadow-[0_-4px_24px_rgba(0,0,0,0.6)] border-t-4 border-white/20 flex flex-col gap-1.5"
             >
               {/* Chips — above textarea, centered, 2 rows */}
               <div className="flex flex-wrap justify-center gap-1.5">
@@ -858,12 +858,9 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                 })}
               </div>
 
-              {/* Counter + Textarea + Post */}
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-end">
-                  <span className="text-[12px] text-slate-400">{reviewText.length}/200</span>
-                </div>
-                <div className="flex gap-2 items-end">
+              {/* Textarea + Post */}
+              <div className="flex gap-2 items-end">
+                <div className="relative flex-1">
                   <textarea
                     rows={2}
                     value={reviewText}
@@ -889,16 +886,19 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                         ? "Why...got intel for friends?"
                         : INTEL_DATA[review?.value]?.placeholder || "Add intel..."
                     }
-                    className="flex-1 bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none overflow-y-auto"
+                    className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none overflow-y-auto"
                   />
-                  <button
-                    onClick={() => postReview({ text: reviewText, chips: selectedChips })}
-                    style={{ touchAction: 'manipulation' }}
-                    className="shrink-0 px-4 py-1.5 rounded-lg bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95"
-                  >
-                    Post
-                  </button>
+                  <span className="absolute top-2 right-3 text-[12px] text-slate-400 pointer-events-none">
+                    {reviewText.length}/150
+                  </span>
                 </div>
+                <button
+                  onClick={() => postReview({ text: reviewText, chips: selectedChips })}
+                  style={{ touchAction: 'manipulation' }}
+                  className="shrink-0 px-4 py-1.5 rounded-lg bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95"
+                >
+                  Post
+                </button>
               </div>
             </div>
           </div>
