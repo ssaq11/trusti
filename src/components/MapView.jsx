@@ -837,34 +837,43 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               style={{ borderTopColor: INTEL_DATA[review?.value]?.borderColor || '#3b82f6' }}
               className="bg-[#0d1b33] rounded-t-2xl p-3 pb-2 w-full shadow-[0_-4px_24px_rgba(0,0,0,0.6)] border-t-4 border-white/20 flex flex-col gap-2"
             >
-              {/* Textarea */}
-              <textarea
-                value={reviewText}
-                onChange={e => {
-                  let val = e.target.value;
-                  if (reviewText === '' && val !== '') val = '• ' + val;
-                  setReviewText(val);
-                }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    setReviewText(prev => prev + '\n• ');
+              {/* Textarea + Post button side by side */}
+              <div className="flex gap-2 items-start">
+                <textarea
+                  value={reviewText}
+                  onChange={e => {
+                    let val = e.target.value;
+                    if (reviewText === '' && val !== '') val = '• ' + val;
+                    setReviewText(val);
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      setReviewText(prev => prev + '\n• ');
+                    }
+                  }}
+                  onInput={e => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 144) + 'px';
+                  }}
+                  placeholder={
+                    review?.value === 'green'
+                      ? "Some tips friends should know?.."
+                      : review?.value === 'yellow' || review?.value === 'red'
+                      ? "Why...got intel for friends?"
+                      : INTEL_DATA[review?.value]?.placeholder || "Add intel..."
                   }
-                }}
-                onInput={e => {
-                  e.target.style.height = 'auto';
-                  e.target.style.height = Math.min(e.target.scrollHeight, 144) + 'px';
-                }}
-                placeholder={
-                  review?.value === 'green'
-                    ? "Some tips friends should know?.."
-                    : review?.value === 'yellow' || review?.value === 'red'
-                    ? "Why...got intel for friends?"
-                    : INTEL_DATA[review?.value]?.placeholder || "Add intel..."
-                }
-                className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
-                style={{ minHeight: '72px' }}
-              />
+                  className="flex-1 bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+                  style={{ minHeight: '72px' }}
+                />
+                <button
+                  onClick={() => postReview({ text: reviewText, chips: selectedChips })}
+                  style={{ touchAction: 'manipulation' }}
+                  className="w-[72px] shrink-0 py-2 rounded-xl bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95 self-start mt-0"
+                >
+                  Post
+                </button>
+              </div>
 
               {/* Chips — all in one row, toggle selected state */}
               <div className="flex flex-wrap gap-1.5">
@@ -885,19 +894,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     </button>
                   )
                 })}
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-between items-center pt-0">
-                <button onClick={closeReview} className="px-3 py-1.5 rounded-lg bg-white/5 text-slate-400 text-sm font-medium hover:text-white transition-colors">
-                  Cancel
-                </button>
-                <button
-                  onClick={() => postReview({ text: reviewText, chips: selectedChips })}
-                  className="px-3 py-1.5 rounded-lg bg-blue-500 text-white font-bold text-sm shadow-lg transition-transform active:scale-95"
-                >
-                  Post
-                </button>
               </div>
             </div>
           </div>
