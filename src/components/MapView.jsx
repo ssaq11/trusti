@@ -885,7 +885,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       ? "Why...got intel for friends?"
                       : INTEL_DATA[review?.value]?.placeholder || "Add intel..."
                   }
-                  className="flex-1 bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 resize-none overflow-hidden"
+                  className="flex-1 bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm placeholder:text-slate-300 focus:outline-none focus:border-blue-500 resize-none overflow-hidden"
                 />
                 <div className="flex flex-col justify-between items-end shrink-0">
                   <span className="text-[12px] text-slate-400">{reviewText.length}/150</span>
