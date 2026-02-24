@@ -73,9 +73,15 @@ function buildReviewDotSvg(counts) {
 // Build HTML content for an AdvancedMarkerElement
 function buildMarkerContent(place, { hasReviews, counts, isBookmarked, isKeywordMatch, showLabel, intentType }) {
   const container = document.createElement('div')
-  container.style.cssText = 'display:flex;flex-direction:column;align-items:center;'
+  container.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:0;'
+
+  // Balloon floats above the dot on a string
+  if (intentType) {
+    container.appendChild(buildBalloonDiv(intentType))
+  }
 
   const dot = document.createElement('div')
+  dot.dataset.markerDot = '1'
   dot.dataset.hasReviews = hasReviews ? '1' : ''
   if (hasReviews) {
     dot.innerHTML = buildReviewDotSvg(counts)
@@ -92,17 +98,6 @@ function buildMarkerContent(place, { hasReviews, counts, isBookmarked, isKeyword
       <circle cx="8" cy="8" r="7" fill="#9ca3af" fill-opacity="0.7" stroke="#fff" stroke-width="1"/>
     </svg>`
   }
-  if (intentType) {
-    dot.style.position = 'relative'
-    const intentOverlay = document.createElement('div')
-    intentOverlay.className = 'trusti-intent-overlay'
-    intentOverlay.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;'
-    const svgEl = dot.querySelector('svg')
-    const iw = svgEl ? parseInt(svgEl.getAttribute('width')) : 16
-    const ih = svgEl ? parseInt(svgEl.getAttribute('height')) : 16
-    intentOverlay.innerHTML = buildIntentOverlaySvg(intentType, iw, ih)
-    dot.appendChild(intentOverlay)
-  }
 
   container.appendChild(dot)
 
@@ -115,19 +110,40 @@ function buildMarkerContent(place, { hasReviews, counts, isBookmarked, isKeyword
   return { element: container, labelEl: label }
 }
 
-function buildIntentOverlaySvg(intentType, w, h) {
-  if (intentType === 'try') {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 20 20">
-      <circle cx="10" cy="10" r="9" fill="rgba(0,0,0,0.55)"/>
-      <line x1="6" y1="3" x2="6" y2="17" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M6 3 L16 7 L6 11 Z" fill="#22c55e"/>
-    </svg>`
+// Build a "balloon on a string" div that floats above the marker dot
+function buildBalloonDiv(intentType) {
+  const BALLOON_R = 8
+  const STRING_LEN = 22
+  const OFFSET_X = 7  // balloon drifts right for 'try', left for 'pass'
+  const isTry = intentType === 'try'
+  const balloonColor = isTry ? '#22c55e' : '#ef4444'
+  const offsetX = isTry ? OFFSET_X : -OFFSET_X
+  const svgW = 38
+  const svgH = BALLOON_R * 2 + STRING_LEN
+  const centerX = svgW / 2
+  const bCX = centerX + offsetX
+  const bCY = BALLOON_R
+  const s1X = bCX, s1Y = bCY + BALLOON_R  // bottom of balloon
+  const s2X = centerX, s2Y = svgH          // bottom of SVG (touches top of dot)
+
+  let icon = ''
+  if (isTry) {
+    icon = `<text x="${bCX}" y="${bCY}" text-anchor="middle" dominant-baseline="central" font-size="10" fill="white" font-weight="bold">★</text>`
+  } else {
+    const d = 3.5
+    icon = `<line x1="${bCX-d}" y1="${bCY-d}" x2="${bCX+d}" y2="${bCY+d}" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="${bCX+d}" y1="${bCY-d}" x2="${bCX-d}" y2="${bCY+d}" stroke="white" stroke-width="1.8" stroke-linecap="round"/>`
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 20 20">
-    <circle cx="10" cy="10" r="9" fill="rgba(239,68,68,0.88)"/>
-    <circle cx="10" cy="10" r="9" fill="none" stroke="white" stroke-width="1.5"/>
-    <line x1="5" y1="5" x2="15" y2="15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+
+  const div = document.createElement('div')
+  div.className = 'trusti-balloon-div'
+  div.style.cssText = 'pointer-events:none;line-height:0;'
+  div.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" overflow="visible">
+    <line x1="${s1X}" y1="${s1Y}" x2="${s2X}" y2="${s2Y}" stroke="${balloonColor}" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="${bCX}" cy="${bCY}" r="${BALLOON_R}" fill="${balloonColor}" stroke="white" stroke-width="1.5"/>
+    ${icon}
   </svg>`
+  return div
 }
 
 function getCuisineLabel(types = []) {
@@ -215,7 +231,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   useEffect(() => {
     // Reset all markers
     markersRef.current.forEach(m => {
-      const dotEl = m.content?.firstChild
+      const dotEl = m.content?.querySelector('[data-marker-dot]')
       if (dotEl) {
         dotEl.style.transform = ''
         const ring = dotEl.querySelector('.trusti-select-ring')
@@ -228,7 +244,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
     const idx = places.findIndex(p => p.placeId === selectedPlaceId)
     if (idx === -1) return
     const marker = markersRef.current[idx]
-    const dotEl = marker?.content?.firstChild
+    const dotEl = marker?.content?.querySelector('[data-marker-dot]')
     if (!dotEl) return
 
     // Scale up the dot only (not the label)
@@ -261,27 +277,21 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
     userIntentsRef.current = userIntents
   }, [userIntents])
 
-  // Update intent overlays on existing markers immediately when intents change
+  // Update intent balloons on existing markers immediately when intents change
   useEffect(() => {
     const intentLookup = new Map(userIntents.map(i => [i.placeId, i.type]))
     markersRef.current.forEach((marker, idx) => {
       const place = places[idx]
       if (!place) return
-      const dot = marker.content?.firstChild
-      if (!dot) return
-      const existing = dot.querySelector('.trusti-intent-overlay')
-      if (existing) existing.remove()
+      const content = marker.content
+      if (!content) return
+      // Remove existing balloon
+      const existingBalloon = content.querySelector('.trusti-balloon-div')
+      if (existingBalloon) existingBalloon.remove()
+      // Prepend new balloon if needed
       const intentType = intentLookup.get(place.placeId)
       if (intentType) {
-        dot.style.position = 'relative'
-        const overlay = document.createElement('div')
-        overlay.className = 'trusti-intent-overlay'
-        overlay.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;'
-        const svgEl = dot.querySelector('svg')
-        const iw = svgEl ? parseInt(svgEl.getAttribute('width')) : 16
-        const ih = svgEl ? parseInt(svgEl.getAttribute('height')) : 16
-        overlay.innerHTML = buildIntentOverlaySvg(intentType, iw, ih)
-        dot.appendChild(overlay)
+        content.insertBefore(buildBalloonDiv(intentType), content.firstChild)
       }
     })
   }, [userIntents, places])
