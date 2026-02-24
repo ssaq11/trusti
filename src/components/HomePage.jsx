@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, Clock, Menu, X, Users, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords, setIntent, getUserIntents } from '../services/firestore'
+import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords, setIntent, getUserIntents, addRecommendation } from '../services/firestore'
 import MapView from './MapView'
 import PlaceDetail from './PlaceDetail'
 import AddRecommendation from './AddRecommendation'
@@ -119,6 +119,29 @@ export default function HomePage() {
       await loadIntents()
     } catch (err) {
       console.error('Failed to save intent:', err)
+    }
+  }
+
+  async function handleReviewPost({ place, rating, comment, chips, reload }) {
+    if (reload) { await loadRecs(); return }
+    try {
+      await addRecommendation({
+        userId: user.uid,
+        userName: user.displayName || user.email.split('@')[0],
+        userPhotoURL: user.photoURL || null,
+        restaurantName: place.name,
+        restaurantAddress: place.address,
+        restaurantPlaceId: place.placeId,
+        restaurantLat: place.lat,
+        restaurantLng: place.lng,
+        rating,
+        comment: comment?.trim() || '',
+        chips: chips || [],
+        zipCode: null,
+      })
+      await loadRecs()
+    } catch (err) {
+      console.error('Failed to post review:', err)
     }
   }
 
@@ -251,7 +274,9 @@ export default function HomePage() {
         <MapView
           onPlaceSelect={handlePlaceSelect}
           onAddReview={handleAddReview}
+          onReviewPost={handleReviewPost}
           onIntentSubmit={handleIntentSubmit}
+          currentUser={user}
           userIntents={allIntents}
           onClearSearch={clearSearch}
           searchKeyword={searchKeyword}

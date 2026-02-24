@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Navigation, RefreshCw, Flag, Ban, AlertTriangle } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
+import { updateRecommendation } from '../services/firestore'
 import TrafficLight from './TrafficLight'
 import IntentModal from './IntentModal'
 
@@ -173,6 +174,20 @@ function isZipCode(text) {
   return /^\d{5}$/.test(text.trim())
 }
 
+function getTimeAgo(timestamp) {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000)
+  if (seconds < 60) return 'just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  const weeks = Math.floor(days / 7)
+  if (weeks < 5) return `${weeks}w ago`
+  return `${Math.floor(days / 30)}mo ago`
+}
+
 async function geocodeLocation(query) {
   if (!window.google?.maps) return null
   const geocoder = new window.google.maps.Geocoder()
@@ -198,7 +213,7 @@ const INTEL_DATA = {
   pass:   { placeholder: "What's the warning?...", borderColor: '#f87171', chips: ['Overhyped','Impossible to get in','Sketchy vibe'] }
 }
 
-export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, userIntents = [], onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
+export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIntentSubmit, currentUser, userIntents = [], onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersRef = useRef([])
@@ -221,9 +236,10 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
   const [locating, setLocating] = useState(false)
   const [selectedPlaceId, setSelectedPlaceId] = useState(null)
   const [intentModal, setIntentModal] = useState(null) // null | { place, type }
-  const [review, setReview] = useState(null) // null | { placeId, type:'light'|'flag', value, visible }
+  const [review, setReview] = useState(null) // null | { placeId, type:'light'|'flag', value, visible, isEdit?, editId? }
   const [reviewText, setReviewText] = useState('')
   const [selectedChips, setSelectedChips] = useState([])
+  const [expandedPlaceId, setExpandedPlaceId] = useState(null)
   const cardRefs = useRef({})
   const savedScrollRef = useRef(0)
 
@@ -783,11 +799,39 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
     if (!place) return
     const placeData = { placeId: place.placeId, name: place.name, address: place.address, lat: place.lat, lng: place.lng }
     if (review.type === 'light') {
-      await onAddReview?.({ ...placeData, rating: review.value })
+      if (review.isEdit && review.editId) {
+        await updateRecommendation(review.editId, {
+          rating: review.value,
+          comment: reviewText.trim(),
+          chips: selectedChips,
+        })
+        onReviewPost?.({ reload: true })
+      } else {
+        await onReviewPost?.({ place: placeData, rating: review.value, comment: reviewText, chips: selectedChips })
+      }
     } else {
-      await onIntentSubmit?.({ place: placeData, type: review.value, note: '' })
+      await onIntentSubmit?.({ place: placeData, type: review.value, note: reviewText })
     }
     closeReview()
+  }
+
+  function openEditReview(rec) {
+    const placeId = rec.restaurantPlaceId
+    const place = places.find(p => p.placeId === placeId)
+    if (!place) return
+    setExpandedPlaceId(null)
+    setSelectedPlaceId(placeId)
+    setReviewText(rec.comment || '')
+    setSelectedChips(rec.chips || [])
+    setReview({ placeId, type: 'light', value: rec.rating, visible: false, isEdit: true, editId: rec.id })
+    const list = listRef.current
+    const cardEl = cardRefs.current[placeId]
+    if (list && cardEl) {
+      savedScrollRef.current = list.scrollTop
+      const cardOffsetInList = cardEl.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop
+      list.scrollTo({ top: cardOffsetInList, behavior: 'smooth' })
+    }
+    setTimeout(() => setReview(r => r ? { ...r, visible: true } : null), 10)
   }
 
   return (
@@ -886,7 +930,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                   }}
                   onInput={e => {
                     e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 144) + 'px';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 192) + 'px';
                   }}
                   placeholder={
                     review?.value === 'green'
@@ -953,6 +997,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               const price = getPriceLabel(place.priceLevel)
               const cuisinePriceMeta = [cuisine, price].filter(Boolean).join(' • ')
               const isEditingThis = review?.placeId === place.placeId
+              const isExpanded = expandedPlaceId === place.placeId
 
               function selectAndPan() {
                 if (review && review.placeId !== place.placeId) {
@@ -974,18 +1019,14 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
               }
 
               return (
-                /* Outer is position:relative so divider + right zone can be
-                   absolute. Left half button fills 100% width so text flows
-                   freely across the full card. The right zone sits on top (no
-                   background) and the divider is an absolute 1px line. */
+                /* Outer card — variable height to allow expanded review panel.
+                   Main 72px row is an inner div. Left tap = read mode (expand).
+                   Right tap = write mode (banner). */
                 <div
                   key={place.placeId}
                   data-place-id={place.placeId}
                   ref={el => { cardRefs.current[place.placeId] = el }}
                   style={{
-                    position: 'relative',
-                    display: 'flex',
-                    height: 72,
                     borderRadius: 12,
                     overflow: 'hidden',
                     background: '#263347',
@@ -994,9 +1035,15 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                     transition: 'outline 0.3s ease',
                   }}
                 >
-                  {/* LEFT HALF button — spans full card width so text flows freely */}
+                  {/* Main 72px row */}
+                  <div style={{ position: 'relative', display: 'flex', height: 72 }}>
+
+                  {/* LEFT HALF button — tapping expands/collapses reviews + pans map */}
                   <button
-                    onClick={selectAndPan}
+                    onClick={() => {
+                      selectAndPan()
+                      setExpandedPlaceId(prev => prev === place.placeId ? null : place.placeId)
+                    }}
                     style={{
                       flex: '1 1 0',
                       display: 'flex',
@@ -1115,6 +1162,65 @@ export default function MapView({ onPlaceSelect, onAddReview, onIntentSubmit, us
                       isEditing={isEditingThis}
                     />
                   </div>
+
+                  </div>{/* end main row */}
+
+                  {/* Expanded review panel — reads all reviews for this place */}
+                  {isExpanded && (
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                      {placeReviews.length === 0 ? (
+                        <p style={{ padding: '12px 14px', fontSize: 11, color: '#475569', margin: 0, textAlign: 'center' }}>
+                          No reviews yet — tap a light to add yours!
+                        </p>
+                      ) : (
+                        placeReviews.map(rec => {
+                          const isOwn = rec.userId === currentUser?.uid
+                          const timeAgo = rec.createdAt?.seconds ? getTimeAgo(rec.createdAt.seconds * 1000) : ''
+                          const ratingColor = TRUSTI_COLORS[rec.rating] || '#9ca3af'
+                          return (
+                            <div key={rec.id} style={{ padding: '9px 12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                              {/* Header: avatar · name · rating dot · time · edit */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+                                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#334155', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                                  {rec.userPhotoURL
+                                    ? <img src={rec.userPhotoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : rec.userName?.[0]?.toUpperCase()
+                                  }
+                                </div>
+                                <span style={{ fontSize: 11, fontWeight: 600, color: '#cbd5e1' }}>{rec.userName}</span>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: ratingColor, flexShrink: 0 }} />
+                                {timeAgo && <span style={{ fontSize: 10, color: '#475569' }}>{timeAgo}</span>}
+                                {isOwn && (
+                                  <button
+                                    onClick={() => openEditReview(rec)}
+                                    style={{ marginLeft: 'auto', fontSize: 10, color: '#4ade80', background: 'rgba(74,222,128,0.1)', border: 'none', cursor: 'pointer', padding: '2px 8px', borderRadius: 4 }}
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                              </div>
+                              {/* Chips */}
+                              {rec.chips?.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 5 }}>
+                                  {rec.chips.map(chip => (
+                                    <span key={chip} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.18)' }}>
+                                      {chip}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Comment */}
+                              {rec.comment && (
+                                <p style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>
+                                  {rec.comment}
+                                </p>
+                              )}
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}
