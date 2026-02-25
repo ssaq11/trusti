@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Navigation, RefreshCw, Flag, Ban, AlertTriangle } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
-import { updateRecommendation } from '../services/firestore'
+import { updateRecommendation, deleteRecommendation } from '../services/firestore'
 import TrafficLight from './TrafficLight'
 import IntentModal from './IntentModal'
 
@@ -999,6 +999,16 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
               const isEditingThis = review?.placeId === place.placeId
               const isExpanded = expandedPlaceId === place.placeId
 
+              // Group reviews by userId (newest first within each group, groups sorted newest first)
+              const byUser = {}
+              placeReviews.forEach(rec => {
+                if (!byUser[rec.userId]) byUser[rec.userId] = []
+                byUser[rec.userId].push(rec)
+              })
+              const reviewUserGroups = Object.values(byUser)
+                .map(recs => [...recs].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)))
+                .sort((a, b) => (b[0].createdAt?.seconds || 0) - (a[0].createdAt?.seconds || 0))
+
               function selectAndPan() {
                 if (review && review.placeId !== place.placeId) {
                   // Different card tapped — close banner, don't restore old scroll
@@ -1034,10 +1044,10 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                     transition: 'border-color 0.3s ease',
                   }}
                 >
-                  {/* Main 72px row */}
-                  <div style={{ position: 'relative', display: 'flex', height: 72 }}>
+                  {/* Main 60px row */}
+                  <div style={{ position: 'relative', display: 'flex', height: 60 }}>
 
-                  {/* LEFT HALF button — tapping expands/collapses reviews + pans map */}
+                  {/* LEFT HALF button — tap = expand reviews + pan map */}
                   <button
                     onClick={() => {
                       selectAndPan()
@@ -1047,7 +1057,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                       flex: '1 1 0',
                       display: 'flex',
                       alignItems: 'center',
-                      padding: '8px 10px',
+                      padding: '7px 10px',
                       textAlign: 'left',
                       background: '#263347',
                       border: 'none',
@@ -1056,97 +1066,27 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                     }}
                   >
                     <div style={{ minWidth: 0, width: '100%' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'white', wordBreak: 'break-word', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {/* Name · Cuisine — compact single line */}
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'white', wordBreak: 'break-word', lineHeight: 1.25, display: 'flex', alignItems: 'baseline', gap: 3, flexWrap: 'wrap' }}>
                         <span style={{ minWidth: 0 }}>{place.name}</span>
-                        {isBookmarked && <span style={{ color: '#a78bfa', fontSize: 10, flexShrink: 0 }}>★</span>}
+                        {cuisine && <span style={{ fontSize: 10, fontWeight: 400, color: '#64748b', flexShrink: 0 }}>• {cuisine}</span>}
+                        {isBookmarked && <span style={{ color: '#a78bfa', fontSize: 9, flexShrink: 0 }}>★</span>}
                       </div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, wordBreak: 'break-word', lineHeight: 1.3 }}>{place.address?.split(',').slice(0, 2).join(',').trim()}</div>
-                      {cuisinePriceMeta && (
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{cuisinePriceMeta}</div>
-                      )}
-                      {place.rating && (
-                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 11, height: 11, borderRadius: '50%', background: 'white', color: '#4285F4', fontSize: 7, fontWeight: 900, fontFamily: 'Arial,sans-serif', flexShrink: 0 }}>G</span>
-                          {place.rating}
-                        </div>
-                      )}
+                      {/* Address */}
+                      <div style={{ fontSize: 10, color: '#64748b', marginTop: 2, wordBreak: 'break-word', lineHeight: 1.25 }}>{place.address?.split(',').slice(0, 2).join(',').trim()}</div>
                     </div>
                   </button>
 
-                  {/* 1px divider — absolute so it doesn't consume flex space */}
-                  <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.12)', pointerEvents: 'none' }} />
+                  {/* 1px divider */}
+                  <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.10)', pointerEvents: 'none' }} />
 
-                  {/* RIGHT ZONE — absolute, no background, sits on top of text.
-                      Traffic light + side-by-side flags. Both tap and pan. */}
-                  <div
-                    onClick={selectAndPan}
-                    style={{
-                      position: 'absolute',
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      padding: '3px 6px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {/* Try / Pass flags — dims (not locked) when a light is active */}
-                    <div
-                      style={{
-                        position: 'absolute', top: 4, left: 6, display: 'flex', gap: 6,
-                        opacity: review?.placeId === place.placeId && review?.type === 'light' ? 0.35 : 1,
-                        transition: 'opacity 0.15s',
-                        alignItems: 'center',
-                        height: 32
-                      }}
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <div className="relative inline-flex flex-col items-center">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'try') }}
-                          className={`w-8 h-8 flex items-center justify-center transition-colors ${
-                            review?.placeId === place.placeId && review?.value === 'try'
-                              ? 'text-green-400'
-                              : 'text-green-700 opacity-60'
-                          }`}
-                        >
-                          <Flag size={15} />
-                        </button>
-                        {review?.placeId === place.placeId && review?.value === 'try' && (
-                          <div className="absolute top-full mt-1.5 left-0 px-2.5 py-0.5 rounded-full text-[11px] font-medium tracking-wide bg-slate-800/60 backdrop-blur-lg border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)] text-green-400 whitespace-nowrap z-50 pointer-events-none">
-                            want to go!
-                          </div>
-                        )}
-                      </div>
+                  {/* RIGHT ZONE — transparent, handles empty-space click → selectAndPan */}
+                  <div onClick={selectAndPan} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%', cursor: 'pointer' }} />
 
-                      <div className="relative inline-flex flex-col items-center">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'pass') }}
-                          className={`w-8 h-8 flex items-center justify-center transition-colors ${
-                            review?.placeId === place.placeId && review?.value === 'pass'
-                              ? 'text-red-400'
-                              : 'text-orange-700 opacity-60'
-                          }`}
-                        >
-                          <AlertTriangle size={15} />
-                        </button>
-                        {review?.placeId === place.placeId && review?.value === 'pass' && (
-                          <div className="absolute top-full mt-1.5 left-0 px-2.5 py-0.5 rounded-full text-[11px] font-medium tracking-wide bg-slate-800/60 backdrop-blur-lg border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)] text-red-400 whitespace-nowrap z-50 pointer-events-none">
-                            heard some things...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Traffic light — dims (not locked) when a flag is active */}
+                  {/* Traffic light — top right, dims when flag active */}
                   <div
                     style={{
-                      position: 'absolute', top: 4, right: 6, zIndex: 2,
+                      position: 'absolute', top: 5, right: 6, zIndex: 2,
                       opacity: review?.placeId === place.placeId && review?.type === 'flag' ? 0.35 : 1,
                       transition: 'opacity 0.15s',
                     }}
@@ -1154,7 +1094,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                   >
                     <TrafficLight
                       activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
-                      size="card-h"
+                      size="sm"
                       direction="row"
                       onColorClick={(color) => openReview(place, 'light', color)}
                       userSelection={isEditingThis && review?.type === 'light' ? review.value : null}
@@ -1162,67 +1102,142 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                     />
                   </div>
 
+                  {/* Flags — bottom right, dims when light active */}
+                  <div
+                    style={{
+                      position: 'absolute', bottom: 5, right: 6, zIndex: 2,
+                      display: 'flex', gap: 2,
+                      opacity: review?.placeId === place.placeId && review?.type === 'light' ? 0.35 : 1,
+                      transition: 'opacity 0.15s',
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'try') }}
+                      className={`w-6 h-6 flex items-center justify-center transition-colors ${
+                        review?.placeId === place.placeId && review?.value === 'try' ? 'text-green-400' : 'text-green-700/50'
+                      }`}
+                    >
+                      <Flag size={13} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'pass') }}
+                      className={`w-6 h-6 flex items-center justify-center transition-colors ${
+                        review?.placeId === place.placeId && review?.value === 'pass' ? 'text-red-400' : 'text-orange-800/50'
+                      }`}
+                    >
+                      <AlertTriangle size={13} />
+                    </button>
+                  </div>
+
                   </div>{/* end main row */}
 
-                  {/* Expanded review panel — reads all reviews for this place */}
+                  {/* Expanded review panel — grouped by user, newest first */}
                   {isExpanded && (
                     <div
                       style={{
                         borderTop: '1px solid rgba(255,255,255,0.08)',
-                        overflowY: placeReviews.length > 1 ? 'scroll' : 'visible',
-                        maxHeight: placeReviews.length > 1 ? 200 : undefined,
-                        scrollSnapType: placeReviews.length > 1 ? 'y mandatory' : undefined,
+                        overflowY: 'scroll',
+                        maxHeight: 170,
+                        scrollSnapType: 'y proximity',
                         scrollbarWidth: 'none',
                       }}
                       className="[&::-webkit-scrollbar]:hidden"
                     >
-                      {placeReviews.length === 0 ? (
+                      {reviewUserGroups.length === 0 ? (
                         <p style={{ padding: '12px 14px', fontSize: 11, color: '#475569', margin: 0, textAlign: 'center' }}>
                           No reviews yet — tap a light to add yours!
                         </p>
                       ) : (
-                        placeReviews.map(rec => {
-                          const isOwn = rec.userId === currentUser?.uid
-                          const timeAgo = rec.createdAt?.seconds ? getTimeAgo(rec.createdAt.seconds * 1000) : ''
-                          const ratingColor = TRUSTI_COLORS[rec.rating] || '#9ca3af'
+                        reviewUserGroups.map((group, gIdx) => {
+                          const newest = group[0]
+                          const isOwn = newest.userId === currentUser?.uid
+                          const hasMultiple = group.length > 1
+                          const newestColor = TRUSTI_COLORS[newest.rating] || '#9ca3af'
+                          const newestTime = newest.createdAt?.seconds ? getTimeAgo(newest.createdAt.seconds * 1000) : ''
                           return (
-                            <div key={rec.id} style={{ scrollSnapAlign: 'start', padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                              {/* Header: avatar · name · rating dot · time · edit */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                                <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#334155', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
-                                  {rec.userPhotoURL
-                                    ? <img src={rec.userPhotoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    : rec.userName?.[0]?.toUpperCase()
-                                  }
+                            <div key={newest.id} style={{ scrollSnapAlign: 'start', borderTop: gIdx > 0 ? '1px solid rgba(255,255,255,0.15)' : 'none' }}>
+                              {/* Newest review for this user */}
+                              <div style={{ padding: '10px 12px', paddingBottom: hasMultiple ? 6 : 10 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#334155', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                                    {newest.userPhotoURL
+                                      ? <img src={newest.userPhotoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      : newest.userName?.[0]?.toUpperCase()
+                                    }
+                                  </div>
+                                  <span style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1' }}>{newest.userName}</span>
+                                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: newestColor, flexShrink: 0 }} />
+                                  <span style={{ fontSize: 10, color: '#475569' }}>
+                                    {hasMultiple ? `Updated · ${newestTime}` : newestTime}
+                                  </span>
+                                  {isOwn && (
+                                    <button
+                                      onClick={() => openEditReview(newest)}
+                                      style={{ marginLeft: 'auto', fontSize: 10, color: '#4ade80', background: 'rgba(74,222,128,0.1)', border: 'none', cursor: 'pointer', padding: '2px 8px', borderRadius: 4 }}
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
                                 </div>
-                                <span style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1' }}>{rec.userName}</span>
-                                <div style={{ width: 7, height: 7, borderRadius: '50%', background: ratingColor, flexShrink: 0 }} />
-                                {timeAgo && <span style={{ fontSize: 10, color: '#475569' }}>{timeAgo}</span>}
-                                {isOwn && (
-                                  <button
-                                    onClick={() => openEditReview(rec)}
-                                    style={{ marginLeft: 'auto', fontSize: 10, color: '#4ade80', background: 'rgba(74,222,128,0.1)', border: 'none', cursor: 'pointer', padding: '2px 8px', borderRadius: 4 }}
-                                  >
-                                    Edit
-                                  </button>
+                                {newest.comment && (
+                                  <p style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>
+                                    {newest.comment}
+                                  </p>
+                                )}
+                                {newest.chips?.length > 0 && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+                                    {newest.chips.map(chip => (
+                                      <span key={chip} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.18)' }}>
+                                        {chip}
+                                      </span>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
-                              {/* Chips */}
-                              {rec.chips?.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 6 }}>
-                                  {rec.chips.map(chip => (
-                                    <span key={chip} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.18)' }}>
-                                      {chip}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                              {/* Comment — same font size as place name */}
-                              {rec.comment && (
-                                <p style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>
-                                  {rec.comment}
-                                </p>
-                              )}
+                              {/* Older visits by the same user */}
+                              {group.slice(1).map((rec, rIdx) => {
+                                const recColor = TRUSTI_COLORS[rec.rating] || '#9ca3af'
+                                const recTime = rec.createdAt?.seconds ? getTimeAgo(rec.createdAt.seconds * 1000) : ''
+                                const isOldest = rIdx === group.length - 2
+                                return (
+                                  <div key={rec.id} style={{ borderTop: '1px dashed rgba(255,255,255,0.12)', padding: '8px 12px', paddingBottom: isOldest ? 10 : 8 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: rec.comment || rec.chips?.length ? 4 : 0 }}>
+                                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: recColor, flexShrink: 0 }} />
+                                      <span style={{ fontSize: 10, color: '#475569' }}>
+                                        {isOldest ? `Original · ${recTime}` : recTime}
+                                      </span>
+                                      {isOwn && (
+                                        <button
+                                          onClick={async () => {
+                                            if (confirm('Delete this visit?')) {
+                                              await deleteRecommendation(rec.id)
+                                              onReviewPost?.({ reload: true })
+                                            }
+                                          }}
+                                          style={{ marginLeft: 'auto', fontSize: 11, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
+                                        >
+                                          ×
+                                        </button>
+                                      )}
+                                    </div>
+                                    {rec.comment && (
+                                      <p style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>
+                                        {rec.comment}
+                                      </p>
+                                    )}
+                                    {rec.chips?.length > 0 && (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+                                        {rec.chips.map(chip => (
+                                          <span key={chip} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.18)' }}>
+                                            {chip}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
                             </div>
                           )
                         })
