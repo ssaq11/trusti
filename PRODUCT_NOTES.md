@@ -6,20 +6,23 @@ Trust-based restaurant recommendation network. "Replacing the text message, not 
 - Max 10 trusted friends (hard limit)
 - Stoplight ratings: 🟢 go / 🟡 meh / 🔴 skip
 - Flags: 🚩 want to go / ⚠️ heard things
-- Reviews: 160-200 char limit, option for 2nd "page"
+- Reviews: 150 char limit with bullet-point auto-formatting
+- Chips for structured tags (e.g. "Date night", "Must order...")
 - Map-first UI
 
 ## V1 MVP (Current Build)
 - [x] Firebase auth (email + Google)
 - [x] Google Places search
 - [x] Stoplight + flag reviews
-- [x] Follow system (max 10, X/10 counter)
-- [x] Map view with custom markers
+- [x] Follow system (Trusti 9, X/9 counter)
+- [x] Map view with custom markers (stoplight dots + balloon/string intent markers)
 - [x] Review cards with stoplight display
+- [x] Chip-based tags on reviews
+- [x] Review banner slides up over map
+- [x] Filter tabs (All / Trusti Reviews / Want to Go)
+- [x] Inline read mode (left-tap card expands reviews grouped by user)
+- [x] Multi-visit stacking (Updated/Original labels, dotted dividers)
 - [x] Deployed on Vercel
-- [ ] Chip-based tags on reviews
-- [ ] Review banner slides over map
-- [ ] Filter tabs (All/Trusti/Want to Go)
 
 ## V2 Features (Future)
 - AI taste profile learning
@@ -29,6 +32,7 @@ Trust-based restaurant recommendation network. "Replacing the text message, not 
 - Contextual messaging in reviews
 - Restaurant re-review workflow with private feedback
 - Bot/scam prevention
+- Expanded review panel slides up over map (parity with write banner)
 
 ## Revenue Ideas
 - Restaurant claim listings
@@ -37,11 +41,12 @@ Trust-based restaurant recommendation network. "Replacing the text message, not 
 - Sponsored deals/promos (clearly labeled, separate section, doesn't dilute core trust)
 
 ## Design System
-- Dark mode map, orange accents (Mets)
+- Dark mode map, orange accents (Mets colors)
 - Lowercase, conversational copy
 - Hamburger menu (not bottom nav)
-- Custom Trusti markers
+- Custom Trusti markers (stoplight dots, balloon-on-string for flags)
 - Chip-based structured tags
+- Review banner and read panel both eat into map space — content is the star
 
 ## Future Vertical Ideas (Unranked)
 
@@ -70,4 +75,4 @@ Trust-based restaurant recommendation network. "Replacing the text message, not 
 ### Separate Product Concepts
 - Trusti News - Spin-free news aggregator
 
-All verticals would use same core: stoplight ratings, max 10 friends, 200-char reviews
+All verticals would use same core: stoplight ratings, max 10 friends, 150-char reviews
