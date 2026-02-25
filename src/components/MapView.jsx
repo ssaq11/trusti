@@ -1030,9 +1030,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                     borderRadius: 12,
                     overflow: 'hidden',
                     background: '#263347',
-                    outline: isSelected ? '2px solid #3b82f6' : 'none',
-                    outlineOffset: -2,
-                    transition: 'outline 0.3s ease',
+                    border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
+                    transition: 'border-color 0.3s ease',
                   }}
                 >
                   {/* Main 72px row */}
@@ -1167,7 +1166,16 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
 
                   {/* Expanded review panel — reads all reviews for this place */}
                   {isExpanded && (
-                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div
+                      style={{
+                        borderTop: '1px solid rgba(255,255,255,0.08)',
+                        overflowY: placeReviews.length > 1 ? 'scroll' : 'visible',
+                        maxHeight: placeReviews.length > 1 ? 200 : undefined,
+                        scrollSnapType: placeReviews.length > 1 ? 'y mandatory' : undefined,
+                        scrollbarWidth: 'none',
+                      }}
+                      className="[&::-webkit-scrollbar]:hidden"
+                    >
                       {placeReviews.length === 0 ? (
                         <p style={{ padding: '12px 14px', fontSize: 11, color: '#475569', margin: 0, textAlign: 'center' }}>
                           No reviews yet — tap a light to add yours!
@@ -1178,17 +1186,17 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                           const timeAgo = rec.createdAt?.seconds ? getTimeAgo(rec.createdAt.seconds * 1000) : ''
                           const ratingColor = TRUSTI_COLORS[rec.rating] || '#9ca3af'
                           return (
-                            <div key={rec.id} style={{ padding: '9px 12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div key={rec.id} style={{ scrollSnapAlign: 'start', padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                               {/* Header: avatar · name · rating dot · time · edit */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-                                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#334155', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                                <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#334155', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
                                   {rec.userPhotoURL
                                     ? <img src={rec.userPhotoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     : rec.userName?.[0]?.toUpperCase()
                                   }
                                 </div>
-                                <span style={{ fontSize: 11, fontWeight: 600, color: '#cbd5e1' }}>{rec.userName}</span>
-                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: ratingColor, flexShrink: 0 }} />
+                                <span style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1' }}>{rec.userName}</span>
+                                <div style={{ width: 7, height: 7, borderRadius: '50%', background: ratingColor, flexShrink: 0 }} />
                                 {timeAgo && <span style={{ fontSize: 10, color: '#475569' }}>{timeAgo}</span>}
                                 {isOwn && (
                                   <button
@@ -1201,7 +1209,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                               </div>
                               {/* Chips */}
                               {rec.chips?.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 5 }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 6 }}>
                                   {rec.chips.map(chip => (
                                     <span key={chip} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.18)' }}>
                                       {chip}
@@ -1209,9 +1217,9 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                                   ))}
                                 </div>
                               )}
-                              {/* Comment */}
+                              {/* Comment — same font size as place name */}
                               {rec.comment && (
-                                <p style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>
+                                <p style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>
                                   {rec.comment}
                                 </p>
                               )}
