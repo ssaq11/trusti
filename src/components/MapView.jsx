@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Navigation, RefreshCw, Flag, Ban, AlertTriangle } from 'lucide-react'
+import { Navigation, RefreshCw, Flag, Ban, AlertTriangle, X } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 import { updateRecommendation, deleteRecommendation } from '../services/firestore'
@@ -240,6 +240,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
   const [reviewText, setReviewText] = useState('')
   const [selectedChips, setSelectedChips] = useState([])
   const [expandedPlaceId, setExpandedPlaceId] = useState(null)
+  const [expandVisible, setExpandVisible] = useState(false)
   const cardRefs = useRef({})
   const savedScrollRef = useRef(0)
 
@@ -685,10 +686,12 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
         }, 600)
       })
 
-      // Tap on map dismisses the inline review banner
+      // Tap on map dismisses the inline review banner and expanded panel
       map.addListener('click', () => {
         setReview(r => r ? { ...r, visible: false } : null)
         setTimeout(() => setReview(null), 220)
+        setExpandVisible(false)
+        setTimeout(() => setExpandedPlaceId(null), 220)
       })
 
       if (mounted) {
@@ -759,7 +762,15 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, trustiRecs, bookmarks])
 
+  function closeExpanded() {
+    setExpandVisible(false)
+    setTimeout(() => setExpandedPlaceId(null), 220)
+  }
+
   function openReview(place, type, value) {
+    // Close expanded read panel when opening write banner
+    setExpandVisible(false)
+    setExpandedPlaceId(null)
     if (review?.placeId === place.placeId && review?.type === type && review?.value === value) {
       // Same element tapped again — deselect and close
       closeReview()
@@ -834,6 +845,21 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
     setTimeout(() => setReview(r => r ? { ...r, visible: true } : null), 10)
   }
 
+  // Data for the slide-up expanded panel
+  const expandedPlace = expandedPlaceId ? (places.find(p => p.placeId === expandedPlaceId) ?? null) : null
+  const expandedUserGroups = (() => {
+    if (!expandedPlaceId) return []
+    const expReviews = trustiRecs.filter(r => r.restaurantPlaceId === expandedPlaceId)
+    const byUser = {}
+    expReviews.forEach(rec => {
+      if (!byUser[rec.userId]) byUser[rec.userId] = []
+      byUser[rec.userId].push(rec)
+    })
+    return Object.values(byUser)
+      .map(recs => [...recs].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)))
+      .sort((a, b) => (b[0].createdAt?.seconds || 0) - (a[0].createdAt?.seconds || 0))
+  })()
+
   return (
     <div className="flex flex-col h-full">
       {/* Map with buttons */}
@@ -868,6 +894,151 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
         {loading && (
           <div className="absolute bottom-3 right-3 bg-slate-700 rounded-lg shadow-md p-2">
             <RefreshCw size={16} className="text-green-500 animate-spin" />
+          </div>
+        )}
+
+        {/* Scrim — darkens map behind expanded review panel */}
+        {expandedPlaceId && (
+          <div
+            onClick={closeExpanded}
+            style={{
+              position: 'absolute', inset: 0,
+              background: 'rgba(0,0,0,0.5)',
+              zIndex: 300,
+              opacity: expandVisible ? 1 : 0,
+              transition: 'opacity 0.22s ease',
+              pointerEvents: expandVisible ? 'auto' : 'none',
+            }}
+          />
+        )}
+
+        {/* Expanded review panel — slides up over map like write banner */}
+        {expandedPlaceId && expandedPlace && (
+          <div
+            style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              zIndex: 400,
+              height: '50%',
+              background: '#0d1b33',
+              borderRadius: '16px 16px 0 0',
+              boxShadow: '0 -4px 24px rgba(0,0,0,0.6)',
+              borderTop: '4px solid rgba(255,255,255,0.08)',
+              transform: expandVisible ? 'translateY(0)' : 'translateY(100%)',
+              transition: 'transform 0.22s cubic-bezier(0.2,0,0,1)',
+              display: 'flex', flexDirection: 'column',
+            }}
+          >
+            {/* Drag handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 4px' }}>
+              <div style={{ width: 36, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.2)' }} />
+            </div>
+            {/* Place header */}
+            <div style={{ padding: '0 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{expandedPlace.name}</span>
+                {expandedPlace.address && (
+                  <span style={{ fontSize: 10, color: '#64748b', marginLeft: 6 }}>
+                    {expandedPlace.address.split(',').slice(0, 2).join(',').trim()}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={closeExpanded}
+                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px', lineHeight: 1, flexShrink: 0 }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {/* Review groups */}
+            <div
+              style={{ flex: 1, overflowY: 'scroll', scrollSnapType: 'y proximity', scrollbarWidth: 'none' }}
+              className="[&::-webkit-scrollbar]:hidden"
+            >
+              {expandedUserGroups.length === 0 ? (
+                <p style={{ padding: '16px', fontSize: 12, color: '#475569', margin: 0, textAlign: 'center' }}>
+                  No reviews yet — tap a light to add yours!
+                </p>
+              ) : (
+                expandedUserGroups.map((group, gIdx) => {
+                  const newest = group[0]
+                  const isOwn = newest.userId === currentUser?.uid
+                  const hasMultiple = group.length > 1
+                  const newestColor = TRUSTI_COLORS[newest.rating] || '#9ca3af'
+                  const newestTime = newest.createdAt?.seconds ? getTimeAgo(newest.createdAt.seconds * 1000) : ''
+                  return (
+                    <div key={newest.id} style={{ scrollSnapAlign: 'start', borderTop: gIdx > 0 ? '1px solid rgba(255,255,255,0.15)' : 'none' }}>
+                      <div style={{ padding: '10px 14px', paddingBottom: hasMultiple ? 6 : 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#334155', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
+                            {newest.userPhotoURL
+                              ? <img src={newest.userPhotoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              : newest.userName?.[0]?.toUpperCase()
+                            }
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1' }}>{newest.userName}</span>
+                          <div style={{ width: 7, height: 7, borderRadius: '50%', background: newestColor, flexShrink: 0 }} />
+                          <span style={{ fontSize: 10, color: '#475569' }}>
+                            {hasMultiple ? `Updated · ${newestTime}` : newestTime}
+                          </span>
+                          {isOwn && (
+                            <button
+                              onClick={() => { closeExpanded(); openEditReview(newest) }}
+                              style={{ marginLeft: 'auto', fontSize: 10, color: '#4ade80', background: 'rgba(74,222,128,0.1)', border: 'none', cursor: 'pointer', padding: '2px 8px', borderRadius: 4 }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
+                        {newest.comment && (
+                          <p style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>{newest.comment}</p>
+                        )}
+                        {newest.chips?.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+                            {newest.chips.map(chip => (
+                              <span key={chip} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.18)' }}>{chip}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {group.slice(1).map((rec, rIdx) => {
+                        const recColor = TRUSTI_COLORS[rec.rating] || '#9ca3af'
+                        const recTime = rec.createdAt?.seconds ? getTimeAgo(rec.createdAt.seconds * 1000) : ''
+                        const isOldest = rIdx === group.length - 2
+                        return (
+                          <div key={rec.id} style={{ borderTop: '1px dashed rgba(255,255,255,0.12)', padding: '8px 14px', paddingBottom: isOldest ? 10 : 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: rec.comment || rec.chips?.length ? 4 : 0 }}>
+                              <div style={{ width: 7, height: 7, borderRadius: '50%', background: recColor, flexShrink: 0 }} />
+                              <span style={{ fontSize: 10, color: '#475569' }}>{isOldest ? `Original · ${recTime}` : recTime}</span>
+                              {isOwn && (
+                                <button
+                                  onClick={async () => {
+                                    if (confirm('Delete this visit?')) {
+                                      await deleteRecommendation(rec.id)
+                                      onReviewPost?.({ reload: true })
+                                    }
+                                  }}
+                                  style={{ marginLeft: 'auto', fontSize: 11, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
+                                >×</button>
+                              )}
+                            </div>
+                            {rec.comment && (
+                              <p style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>{rec.comment}</p>
+                            )}
+                            {rec.chips?.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+                                {rec.chips.map(chip => (
+                                  <span key={chip} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.18)' }}>{chip}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })
+              )}
+            </div>
           </div>
         )}
 
@@ -997,17 +1168,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
               const price = getPriceLabel(place.priceLevel)
               const cuisinePriceMeta = [cuisine, price].filter(Boolean).join(' • ')
               const isEditingThis = review?.placeId === place.placeId
-              const isExpanded = expandedPlaceId === place.placeId
-
-              // Group reviews by userId (newest first within each group, groups sorted newest first)
-              const byUser = {}
-              placeReviews.forEach(rec => {
-                if (!byUser[rec.userId]) byUser[rec.userId] = []
-                byUser[rec.userId].push(rec)
-              })
-              const reviewUserGroups = Object.values(byUser)
-                .map(recs => [...recs].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)))
-                .sort((a, b) => (b[0].createdAt?.seconds || 0) - (a[0].createdAt?.seconds || 0))
 
               function selectAndPan() {
                 if (review && review.placeId !== place.placeId) {
@@ -1051,7 +1211,13 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                   <button
                     onClick={() => {
                       selectAndPan()
-                      setExpandedPlaceId(prev => prev === place.placeId ? null : place.placeId)
+                      if (expandedPlaceId === place.placeId) {
+                        closeExpanded()
+                      } else {
+                        setExpandedPlaceId(place.placeId)
+                        setExpandVisible(false)
+                        setTimeout(() => setExpandVisible(true), 10)
+                      }
                     }}
                     style={{
                       flex: '1 1 0',
@@ -1131,119 +1297,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                   </div>
 
                   </div>{/* end main row */}
-
-                  {/* Expanded review panel — grouped by user, newest first */}
-                  {isExpanded && (
-                    <div
-                      style={{
-                        borderTop: '1px solid rgba(255,255,255,0.08)',
-                        overflowY: 'scroll',
-                        maxHeight: 170,
-                        scrollSnapType: 'y proximity',
-                        scrollbarWidth: 'none',
-                      }}
-                      className="[&::-webkit-scrollbar]:hidden"
-                    >
-                      {reviewUserGroups.length === 0 ? (
-                        <p style={{ padding: '12px 14px', fontSize: 11, color: '#475569', margin: 0, textAlign: 'center' }}>
-                          No reviews yet — tap a light to add yours!
-                        </p>
-                      ) : (
-                        reviewUserGroups.map((group, gIdx) => {
-                          const newest = group[0]
-                          const isOwn = newest.userId === currentUser?.uid
-                          const hasMultiple = group.length > 1
-                          const newestColor = TRUSTI_COLORS[newest.rating] || '#9ca3af'
-                          const newestTime = newest.createdAt?.seconds ? getTimeAgo(newest.createdAt.seconds * 1000) : ''
-                          return (
-                            <div key={newest.id} style={{ scrollSnapAlign: 'start', borderTop: gIdx > 0 ? '1px solid rgba(255,255,255,0.15)' : 'none' }}>
-                              {/* Newest review for this user */}
-                              <div style={{ padding: '10px 12px', paddingBottom: hasMultiple ? 6 : 10 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#334155', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
-                                    {newest.userPhotoURL
-                                      ? <img src={newest.userPhotoURL} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                      : newest.userName?.[0]?.toUpperCase()
-                                    }
-                                  </div>
-                                  <span style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1' }}>{newest.userName}</span>
-                                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: newestColor, flexShrink: 0 }} />
-                                  <span style={{ fontSize: 10, color: '#475569' }}>
-                                    {hasMultiple ? `Updated · ${newestTime}` : newestTime}
-                                  </span>
-                                  {isOwn && (
-                                    <button
-                                      onClick={() => openEditReview(newest)}
-                                      style={{ marginLeft: 'auto', fontSize: 10, color: '#4ade80', background: 'rgba(74,222,128,0.1)', border: 'none', cursor: 'pointer', padding: '2px 8px', borderRadius: 4 }}
-                                    >
-                                      Edit
-                                    </button>
-                                  )}
-                                </div>
-                                {newest.comment && (
-                                  <p style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>
-                                    {newest.comment}
-                                  </p>
-                                )}
-                                {newest.chips?.length > 0 && (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
-                                    {newest.chips.map(chip => (
-                                      <span key={chip} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.18)' }}>
-                                        {chip}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                              {/* Older visits by the same user */}
-                              {group.slice(1).map((rec, rIdx) => {
-                                const recColor = TRUSTI_COLORS[rec.rating] || '#9ca3af'
-                                const recTime = rec.createdAt?.seconds ? getTimeAgo(rec.createdAt.seconds * 1000) : ''
-                                const isOldest = rIdx === group.length - 2
-                                return (
-                                  <div key={rec.id} style={{ borderTop: '1px dashed rgba(255,255,255,0.12)', padding: '8px 12px', paddingBottom: isOldest ? 10 : 8 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: rec.comment || rec.chips?.length ? 4 : 0 }}>
-                                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: recColor, flexShrink: 0 }} />
-                                      <span style={{ fontSize: 10, color: '#475569' }}>
-                                        {isOldest ? `Original · ${recTime}` : recTime}
-                                      </span>
-                                      {isOwn && (
-                                        <button
-                                          onClick={async () => {
-                                            if (confirm('Delete this visit?')) {
-                                              await deleteRecommendation(rec.id)
-                                              onReviewPost?.({ reload: true })
-                                            }
-                                          }}
-                                          style={{ marginLeft: 'auto', fontSize: 11, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
-                                        >
-                                          ×
-                                        </button>
-                                      )}
-                                    </div>
-                                    {rec.comment && (
-                                      <p style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap' }}>
-                                        {rec.comment}
-                                      </p>
-                                    )}
-                                    {rec.chips?.length > 0 && (
-                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
-                                        {rec.chips.map(chip => (
-                                          <span key={chip} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.18)' }}>
-                                            {chip}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )
-                        })
-                      )}
-                    </div>
-                  )}
                 </div>
               )
             })}
