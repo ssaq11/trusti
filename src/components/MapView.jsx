@@ -1278,7 +1278,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                       left: 0, top: 0, bottom: 0,
                       right: 128,
                       display: 'flex',
-                      alignItems: 'center',
+                      alignItems: 'flex-start',
                       padding: '7px 10px',
                       textAlign: 'left',
                       background: 'transparent',
@@ -1302,7 +1302,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                   <div
                     style={{
                       position: 'absolute', top: 0, bottom: 0, right: 6, zIndex: 2,
-                      display: 'flex', alignItems: 'center', gap: 2,
+                      display: 'flex', alignItems: 'flex-start', paddingTop: 7, gap: 2,
                     }}
                     onClick={e => e.stopPropagation()}
                   >
