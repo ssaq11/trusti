@@ -847,6 +847,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
 
   // Data for the slide-up expanded panel
   const expandedPlace = expandedPlaceId ? (places.find(p => p.placeId === expandedPlaceId) ?? null) : null
+  const expandedIntent = expandedPlaceId ? (userIntents.find(i => i.placeId === expandedPlaceId) ?? null) : null
   const expandedUserGroups = (() => {
     if (!expandedPlaceId) return []
     const expReviews = trustiRecs.filter(r => r.restaurantPlaceId === expandedPlaceId)
@@ -935,9 +936,26 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
             {/* Place header */}
             <div style={{ padding: '0 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{expandedPlace.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{expandedPlace.name}</span>
+                  {expandedIntent && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 3,
+                      fontSize: 10, fontWeight: 500,
+                      color: expandedIntent.type === 'try' ? '#4ade80' : '#f87171',
+                      background: expandedIntent.type === 'try' ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)',
+                      border: `1px solid ${expandedIntent.type === 'try' ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}`,
+                      borderRadius: 999, padding: '1px 6px',
+                    }}>
+                      {expandedIntent.type === 'try'
+                        ? <><Flag size={9} />&nbsp;want to go</>
+                        : <><AlertTriangle size={9} />&nbsp;passing</>
+                      }
+                    </span>
+                  )}
+                </div>
                 {expandedPlace.address && (
-                  <span style={{ fontSize: 10, color: '#64748b', marginLeft: 6 }}>
+                  <span style={{ fontSize: 10, color: '#64748b' }}>
                     {expandedPlace.address.split(',').slice(0, 2).join(',').trim()}
                   </span>
                 )}
@@ -1161,6 +1179,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
             {places.map(place => {
               const placeReviews = trustiRecs.filter(r => r.restaurantPlaceId === place.placeId)
               const counts = getDeduplicatedCounts(placeReviews)
+              const myIntent = userIntents.find(i => i.placeId === place.placeId) ?? null
               const dominantColor = placeReviews.length > 0
                 ? ['green', 'yellow', 'red'].reduce((best, c) => counts[c] > counts[best] ? c : best)
                 : null
@@ -1251,10 +1270,11 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                   {/* RIGHT ZONE — transparent, handles empty-space click → selectAndPan */}
                   <div onClick={selectAndPan} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%', cursor: 'pointer' }} />
 
-                  {/* Traffic light — top right, dims when flag active */}
+                  {/* Traffic light + intent indicator — top right */}
                   <div
                     style={{
                       position: 'absolute', top: 5, right: 6, zIndex: 2,
+                      display: 'flex', alignItems: 'center', gap: 4,
                       opacity: review?.placeId === place.placeId && review?.type === 'flag' ? 0.35 : 1,
                       transition: 'opacity 0.15s',
                     }}
@@ -1269,6 +1289,11 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                       isEditing={isEditingThis}
                       counts={counts}
                     />
+                    {myIntent && (
+                      myIntent.type === 'try'
+                        ? <Flag size={12} color="#4ade80" />
+                        : <AlertTriangle size={12} color="#f87171" />
+                    )}
                   </div>
 
                   {/* Flags — bottom right, dims when light active */}
@@ -1284,7 +1309,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                     <button
                       onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'try') }}
                       className={`w-6 h-6 flex items-center justify-center transition-colors ${
-                        review?.placeId === place.placeId && review?.value === 'try' ? 'text-green-400' : 'text-green-700/50'
+                        (review?.placeId === place.placeId && review?.value === 'try') || myIntent?.type === 'try'
+                          ? 'text-green-400' : 'text-green-700/50'
                       }`}
                     >
                       <Flag size={13} />
@@ -1292,7 +1318,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                     <button
                       onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'pass') }}
                       className={`w-6 h-6 flex items-center justify-center transition-colors ${
-                        review?.placeId === place.placeId && review?.value === 'pass' ? 'text-red-400' : 'text-orange-800/50'
+                        (review?.placeId === place.placeId && review?.value === 'pass') || myIntent?.type === 'pass'
+                          ? 'text-red-400' : 'text-orange-800/50'
                       }`}
                     >
                       <AlertTriangle size={13} />
