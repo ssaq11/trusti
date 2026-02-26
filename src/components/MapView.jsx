@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Navigation, RefreshCw, Flag, Ban, AlertTriangle, X } from 'lucide-react'
+import { Navigation, RefreshCw, Flag, Ban, AlertTriangle, X, MessageCircle } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 import { updateRecommendation, deleteRecommendation } from '../services/firestore'
@@ -243,8 +243,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
   const [expandVisible, setExpandVisible] = useState(false)
   const cardRefs = useRef({})
   const savedScrollRef = useRef(0)
-  const [toast, setToast] = useState(null)
-  const toastTimerRef = useRef(null)
+  const [noCommentPlaceId, setNoCommentPlaceId] = useState(null)
 
   // Highlight the selected marker — scale up dot + border ring
   useEffect(() => {
@@ -320,6 +319,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
     setSelectedPlaceId(placeId)
     setExpandVisible(false)
     setTimeout(() => setExpandedPlaceId(null), 220)
+    setNoCommentPlaceId(null)
     setTimeout(() => {
       const list = listRef.current
       const cardEl = list?.querySelector(`[data-place-id="${placeId}"]`)
@@ -696,6 +696,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
         setTimeout(() => setReview(null), 220)
         setExpandVisible(false)
         setTimeout(() => setExpandedPlaceId(null), 220)
+        setNoCommentPlaceId(null)
       })
 
       if (mounted) {
@@ -771,16 +772,11 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
     setTimeout(() => setExpandedPlaceId(null), 220)
   }
 
-  function showToast(msg) {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-    setToast(msg)
-    toastTimerRef.current = setTimeout(() => setToast(null), 2500)
-  }
-
   function openReview(place, type, value) {
     // Close expanded read panel when opening write banner
     setExpandVisible(false)
     setExpandedPlaceId(null)
+    setNoCommentPlaceId(null)
     if (review?.placeId === place.placeId && review?.type === type && review?.value === value) {
       // Same element tapped again — deselect and close
       closeReview()
@@ -908,29 +904,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
           </div>
         )}
 
-
-        {/* Toast — no-comments nudge */}
-        {toast && (
-          <div
-            style={{
-              position: 'absolute', bottom: 16, left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 350,
-              background: 'rgba(15,23,42,0.92)',
-              backdropFilter: 'blur(8px)',
-              color: '#94a3b8',
-              fontSize: 12,
-              fontWeight: 500,
-              padding: '8px 16px',
-              borderRadius: 20,
-              whiteSpace: 'nowrap',
-              border: '1px solid rgba(255,255,255,0.1)',
-              pointerEvents: 'none',
-            }}
-          >
-            {toast}
-          </div>
-        )}
 
         {/* Expanded review panel — slides up over map like write banner */}
         {expandedPlaceId && expandedPlace && (
@@ -1260,7 +1233,12 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                         closeExpanded()
                         return
                       }
+                      if (noCommentPlaceId === place.placeId) {
+                        setNoCommentPlaceId(null)
+                        return
+                      }
                       if (placeReviews.length > 0) {
+                        setNoCommentPlaceId(null)
                         const wasOpen = !!expandedPlaceId
                         setExpandedPlaceId(place.placeId)
                         if (!wasOpen) {
@@ -1270,7 +1248,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                         // if panel already visible, content swaps in-place without re-animating
                       } else {
                         if (expandedPlaceId) closeExpanded()
-                        showToast('No comments yet — tap a light or flag to add yours!')
+                        setNoCommentPlaceId(place.placeId)
                       }
                     }}
                     style={{
@@ -1360,6 +1338,24 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                   </div>
 
                   </div>{/* end main row */}
+
+                  {/* No-reviews nudge — expands below the card row */}
+                  <div style={{
+                    maxHeight: noCommentPlaceId === place.placeId ? 56 : 0,
+                    overflow: 'hidden',
+                    transition: 'max-height 0.2s cubic-bezier(0.2,0,0,1)',
+                  }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '10px 12px',
+                      background: 'rgba(255,107,53,0.13)',
+                      borderTop: '2px solid rgba(255,107,53,0.55)',
+                    }}>
+                      <MessageCircle size={14} color="#FF6B35" style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: '#FF6B35', fontWeight: 700 }}>no reviews yet</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>— tap a light or flag to be first!</span>
+                    </div>
+                  </div>
                 </div>
               )
             })}
