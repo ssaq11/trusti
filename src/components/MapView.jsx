@@ -243,6 +243,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
   const [expandVisible, setExpandVisible] = useState(false)
   const cardRefs = useRef({})
   const savedScrollRef = useRef(0)
+  const [toast, setToast] = useState(null)
+  const toastTimerRef = useRef(null)
 
   // Highlight the selected marker — scale up dot + border ring
   useEffect(() => {
@@ -769,6 +771,12 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
     setTimeout(() => setExpandedPlaceId(null), 220)
   }
 
+  function showToast(msg) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setToast(msg)
+    toastTimerRef.current = setTimeout(() => setToast(null), 2500)
+  }
+
   function openReview(place, type, value) {
     // Close expanded read panel when opening write banner
     setExpandVisible(false)
@@ -900,6 +908,29 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
           </div>
         )}
 
+
+        {/* Toast — no-comments nudge */}
+        {toast && (
+          <div
+            style={{
+              position: 'absolute', bottom: 16, left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 350,
+              background: 'rgba(15,23,42,0.92)',
+              backdropFilter: 'blur(8px)',
+              color: '#94a3b8',
+              fontSize: 12,
+              fontWeight: 500,
+              padding: '8px 16px',
+              borderRadius: 20,
+              whiteSpace: 'nowrap',
+              border: '1px solid rgba(255,255,255,0.1)',
+              pointerEvents: 'none',
+            }}
+          >
+            {toast}
+          </div>
+        )}
 
         {/* Expanded review panel — slides up over map like write banner */}
         {expandedPlaceId && expandedPlace && (
@@ -1221,31 +1252,41 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                   {/* Main 60px row */}
                   <div style={{ position: 'relative', display: 'flex', height: 60 }}>
 
-                  {/* LEFT HALF button — tap = expand reviews + pan map */}
+                  {/* READ zone — covers name/address area, stops before the flag icons */}
                   <button
                     onClick={() => {
                       selectAndPan()
                       if (expandedPlaceId === place.placeId) {
                         closeExpanded()
-                      } else {
+                        return
+                      }
+                      if (placeReviews.length > 0) {
+                        const wasOpen = !!expandedPlaceId
                         setExpandedPlaceId(place.placeId)
-                        setExpandVisible(false)
-                        setTimeout(() => setExpandVisible(true), 10)
+                        if (!wasOpen) {
+                          setExpandVisible(false)
+                          setTimeout(() => setExpandVisible(true), 10)
+                        }
+                        // if panel already visible, content swaps in-place without re-animating
+                      } else {
+                        if (expandedPlaceId) closeExpanded()
+                        showToast('No comments yet — tap a light or flag to add yours!')
                       }
                     }}
                     style={{
-                      flex: '1 1 0',
+                      position: 'absolute',
+                      left: 0, top: 0, bottom: 0,
+                      right: 128,
                       display: 'flex',
                       alignItems: 'center',
                       padding: '7px 10px',
                       textAlign: 'left',
-                      background: '#263347',
+                      background: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
-                      minWidth: 0,
                     }}
                   >
-                    <div style={{ minWidth: 0, width: '100%' }}>
+                    <div style={{ minWidth: 0, width: '100%', overflow: 'hidden' }}>
                       {/* Name · Cuisine — compact single line */}
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'white', wordBreak: 'break-word', lineHeight: 1.25, display: 'flex', alignItems: 'baseline', gap: 3, flexWrap: 'wrap' }}>
                         <span style={{ minWidth: 0 }}>{place.name}</span>
@@ -1256,12 +1297,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                       <div style={{ fontSize: 10, color: '#64748b', marginTop: 2, wordBreak: 'break-word', lineHeight: 1.25 }}>{place.address?.split(',').slice(0, 2).join(',').trim()}</div>
                     </div>
                   </button>
-
-                  {/* 1px divider */}
-                  <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: 'rgba(255,255,255,0.10)', pointerEvents: 'none' }} />
-
-                  {/* RIGHT ZONE — transparent, handles empty-space click → selectAndPan */}
-                  <div onClick={selectAndPan} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%', cursor: 'pointer' }} />
 
                   {/* Right zone: flag buttons LEFT of traffic lights — single row */}
                   <div
