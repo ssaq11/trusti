@@ -1361,7 +1361,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
 
                   </div>{/* end main row */}
                   </div>{/* end card */}
-                </div>{/* end outer wrapper */}
+                </div>
               )
             })}
           </div>
