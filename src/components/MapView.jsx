@@ -213,7 +213,7 @@ const INTEL_DATA = {
   pass:   { placeholder: "What's the warning?...", borderColor: '#f87171', chips: ['Overhyped','Impossible to get in','Sketchy vibe'] }
 }
 
-export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIntentSubmit, currentUser, userIntents = [], onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
+export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIntentSubmit, onClearIntent, currentUser, userIntents = [], onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersRef = useRef([])
@@ -919,7 +919,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
             style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
               zIndex: 400,
-              height: '50%',
+              maxHeight: '55%',
               background: '#0d1b33',
               borderRadius: '16px 16px 0 0',
               boxShadow: '0 -4px 24px rgba(0,0,0,0.6)',
@@ -939,19 +939,24 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{expandedPlace.name}</span>
                   {expandedIntent && (
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 3,
-                      fontSize: 10, fontWeight: 500,
-                      color: expandedIntent.type === 'try' ? '#4ade80' : '#f87171',
-                      background: expandedIntent.type === 'try' ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)',
-                      border: `1px solid ${expandedIntent.type === 'try' ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}`,
-                      borderRadius: 999, padding: '1px 6px',
-                    }}>
+                    <button
+                      onClick={() => onClearIntent?.(expandedPlaceId)}
+                      title="Remove flag"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                        fontSize: 10, fontWeight: 500,
+                        color: expandedIntent.type === 'try' ? '#4ade80' : '#f87171',
+                        background: expandedIntent.type === 'try' ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)',
+                        border: `1px solid ${expandedIntent.type === 'try' ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}`,
+                        borderRadius: 999, padding: '1px 8px 1px 6px',
+                        cursor: 'pointer',
+                      }}
+                    >
                       {expandedIntent.type === 'try'
-                        ? <><Flag size={9} />&nbsp;want to go</>
-                        : <><AlertTriangle size={9} />&nbsp;passing</>
+                        ? <><Flag size={9} />&nbsp;want to go&nbsp;×</>
+                        : <><AlertTriangle size={9} />&nbsp;passing&nbsp;×</>
                       }
-                    </span>
+                    </button>
                   )}
                 </div>
                 {expandedPlace.address && (
@@ -1270,44 +1275,25 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                   {/* RIGHT ZONE — transparent, handles empty-space click → selectAndPan */}
                   <div onClick={selectAndPan} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%', cursor: 'pointer' }} />
 
-                  {/* Traffic light + intent indicator — top right */}
+                  {/* Right zone: flag buttons LEFT of traffic lights — single row */}
                   <div
                     style={{
-                      position: 'absolute', top: 5, right: 6, zIndex: 2,
-                      display: 'flex', alignItems: 'center', gap: 4,
-                      opacity: review?.placeId === place.placeId && review?.type === 'flag' ? 0.35 : 1,
-                      transition: 'opacity 0.15s',
+                      position: 'absolute', top: 0, bottom: 0, right: 6, zIndex: 2,
+                      display: 'flex', alignItems: 'center', gap: 2,
                     }}
                     onClick={e => e.stopPropagation()}
                   >
-                    <TrafficLight
-                      activeColors={dominantColor ? [dominantColor] : []}
-                      size="md"
-                      direction="row"
-                      onColorClick={(color) => openReview(place, 'light', color)}
-                      userSelection={isEditingThis && review?.type === 'light' ? review.value : null}
-                      isEditing={isEditingThis}
-                      counts={counts}
-                    />
-                    {myIntent && (
-                      myIntent.type === 'try'
-                        ? <Flag size={12} color="#4ade80" />
-                        : <AlertTriangle size={12} color="#f87171" />
-                    )}
-                  </div>
-
-                  {/* Flags — bottom right, dims when light active */}
-                  <div
-                    style={{
-                      position: 'absolute', bottom: 5, right: 6, zIndex: 2,
-                      display: 'flex', gap: 2,
-                      opacity: review?.placeId === place.placeId && review?.type === 'light' ? 0.35 : 1,
-                      transition: 'opacity 0.15s',
-                    }}
-                    onClick={e => e.stopPropagation()}
-                  >
+                    {/* Flag buttons — dim when a light review is open */}
                     <button
-                      onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'try') }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (myIntent?.type === 'try') {
+                          onClearIntent?.(place.placeId)
+                        } else {
+                          openReview(place, 'flag', 'try')
+                        }
+                      }}
+                      style={{ opacity: review?.placeId === place.placeId && review?.type === 'light' ? 0.35 : 1, transition: 'opacity 0.15s' }}
                       className={`w-6 h-6 flex items-center justify-center transition-colors ${
                         (review?.placeId === place.placeId && review?.value === 'try') || myIntent?.type === 'try'
                           ? 'text-green-400' : 'text-green-700/50'
@@ -1316,7 +1302,15 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                       <Flag size={13} />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); openReview(place, 'flag', 'pass') }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (myIntent?.type === 'pass') {
+                          onClearIntent?.(place.placeId)
+                        } else {
+                          openReview(place, 'flag', 'pass')
+                        }
+                      }}
+                      style={{ opacity: review?.placeId === place.placeId && review?.type === 'light' ? 0.35 : 1, transition: 'opacity 0.15s' }}
                       className={`w-6 h-6 flex items-center justify-center transition-colors ${
                         (review?.placeId === place.placeId && review?.value === 'pass') || myIntent?.type === 'pass'
                           ? 'text-red-400' : 'text-orange-800/50'
@@ -1324,6 +1318,22 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                     >
                       <AlertTriangle size={13} />
                     </button>
+
+                    {/* Slim separator */}
+                    <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)', flexShrink: 0, marginLeft: 2 }} />
+
+                    {/* Traffic lights — dim when a flag review is open */}
+                    <div style={{ opacity: review?.placeId === place.placeId && review?.type === 'flag' ? 0.35 : 1, transition: 'opacity 0.15s' }}>
+                      <TrafficLight
+                        activeColors={dominantColor ? [dominantColor] : []}
+                        size="md"
+                        direction="row"
+                        onColorClick={(color) => openReview(place, 'light', color)}
+                        userSelection={isEditingThis && review?.type === 'light' ? review.value : null}
+                        isEditing={isEditingThis}
+                        counts={counts}
+                      />
+                    </div>
                   </div>
 
                   </div>{/* end main row */}

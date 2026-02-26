@@ -251,6 +251,11 @@ export async function getUserIntents(userId) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
+export async function deleteIntent(userId, placeId) {
+  const docId = `${userId}_${placeId}`
+  await deleteDoc(doc(db, 'intents', docId))
+}
+
 // --- ACCESS CONTROL ---
 
 export async function isUserApproved(uid) {

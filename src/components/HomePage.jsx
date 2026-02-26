@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, Clock, Menu, X, Users, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords, setIntent, getUserIntents, addRecommendation } from '../services/firestore'
+import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords, setIntent, deleteIntent, getUserIntents, addRecommendation } from '../services/firestore'
 import MapView from './MapView'
 import PlaceDetail from './PlaceDetail'
 import AddRecommendation from './AddRecommendation'
@@ -119,6 +119,15 @@ export default function HomePage() {
       await loadIntents()
     } catch (err) {
       console.error('Failed to save intent:', err)
+    }
+  }
+
+  async function handleIntentClear(placeId) {
+    try {
+      await deleteIntent(user.uid, placeId)
+      await loadIntents()
+    } catch (err) {
+      console.error('Failed to clear intent:', err)
     }
   }
 
@@ -276,6 +285,7 @@ export default function HomePage() {
           onAddReview={handleAddReview}
           onReviewPost={handleReviewPost}
           onIntentSubmit={handleIntentSubmit}
+          onClearIntent={handleIntentClear}
           currentUser={user}
           userIntents={allIntents}
           onClearSearch={clearSearch}
