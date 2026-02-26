@@ -12,7 +12,7 @@ const SIZES = {
   lg:       { circle: 20, gap: 6, px: 8, py: 9,  r: 11 },
 }
 
-export default function TrafficLight({ activeColors = [], size = 'sm', direction = 'column', onColorClick, userSelection, isEditing }) {
+export default function TrafficLight({ activeColors = [], size = 'sm', direction = 'column', onColorClick, userSelection, isEditing, counts }) {
   const active = new Set(activeColors)
   const { circle, gap, px, py, r } = SIZES[size] ?? SIZES.sm
 
@@ -50,8 +50,16 @@ export default function TrafficLight({ activeColors = [], size = 'sm', direction
               transform: isUserPick ? 'scale(1.1)' : 'scale(1)',
               transition: 'opacity 0.2s, transform 0.2s',
               cursor: onColorClick ? 'pointer' : 'default',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
+            {counts && counts[color] > 0 && (
+              <span style={{ fontSize: Math.max(7, Math.floor(circle * 0.58)), fontWeight: 800, color: 'white', lineHeight: 1, userSelect: 'none', pointerEvents: 'none' }}>
+                {counts[color]}
+              </span>
+            )}
             {isUserPick && (
               <div className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[11px] font-medium tracking-wide bg-slate-800/60 backdrop-blur-lg border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.5)] whitespace-nowrap z-50 pointer-events-none animate-in fade-in slide-in-from-top-1" style={{ color: on }}>
                 {label}

@@ -976,10 +976,9 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                             }
                           </div>
                           <span style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1' }}>{newest.userName}</span>
-                          <div style={{ width: 7, height: 7, borderRadius: '50%', background: newestColor, flexShrink: 0 }} />
-                          <span style={{ fontSize: 10, color: '#475569' }}>
-                            {hasMultiple ? `Updated · ${newestTime}` : newestTime}
-                          </span>
+                          <span style={{ fontSize: 10, color: '#64748b', whiteSpace: 'nowrap' }}>gave this a</span>
+                          <div style={{ width: 14, height: 14, borderRadius: '50%', background: newestColor, boxShadow: `0 0 6px 3px ${newestColor}70`, flexShrink: 0 }} />
+                          {newestTime && <span style={{ fontSize: 10, color: '#475569' }}>{hasMultiple ? `Updated · ${newestTime}` : newestTime}</span>}
                           {isOwn && (
                             <button
                               onClick={() => { closeExpanded(); openEditReview(newest) }}
@@ -1162,6 +1161,9 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
             {places.map(place => {
               const placeReviews = trustiRecs.filter(r => r.restaurantPlaceId === place.placeId)
               const counts = getDeduplicatedCounts(placeReviews)
+              const dominantColor = placeReviews.length > 0
+                ? ['green', 'yellow', 'red'].reduce((best, c) => counts[c] > counts[best] ? c : best)
+                : null
               const isBookmarked = bookmarks.some(b => b.placeId === place.placeId)
               const isSelected = selectedPlaceId === place.placeId
               const cuisine = getCuisineLabel(place.types || [])
@@ -1259,12 +1261,13 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                     onClick={e => e.stopPropagation()}
                   >
                     <TrafficLight
-                      activeColors={['green', 'yellow', 'red'].filter(c => counts[c] > 0)}
-                      size="sm"
+                      activeColors={dominantColor ? [dominantColor] : []}
+                      size="md"
                       direction="row"
                       onColorClick={(color) => openReview(place, 'light', color)}
                       userSelection={isEditingThis && review?.type === 'light' ? review.value : null}
                       isEditing={isEditingThis}
+                      counts={counts}
                     />
                   </div>
 
