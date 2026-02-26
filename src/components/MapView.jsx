@@ -316,6 +316,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
   // Scroll to a place card in the list so it sits at the top of the visible area
   const scrollToCard = useCallback((placeId) => {
     setSelectedPlaceId(placeId)
+    setExpandVisible(false)
+    setTimeout(() => setExpandedPlaceId(null), 220)
     setTimeout(() => {
       const list = listRef.current
       const cardEl = list?.querySelector(`[data-place-id="${placeId}"]`)
@@ -898,20 +900,6 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
           </div>
         )}
 
-        {/* Scrim — darkens map behind expanded review panel */}
-        {expandedPlaceId && (
-          <div
-            onClick={closeExpanded}
-            style={{
-              position: 'absolute', inset: 0,
-              background: 'rgba(0,0,0,0.5)',
-              zIndex: 300,
-              opacity: expandVisible ? 1 : 0,
-              transition: 'opacity 0.22s ease',
-              pointerEvents: expandVisible ? 'auto' : 'none',
-            }}
-          />
-        )}
 
         {/* Expanded review panel — slides up over map like write banner */}
         {expandedPlaceId && expandedPlace && (
