@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Navigation, RefreshCw, Flag, Ban, AlertTriangle, X, MessageCircle } from 'lucide-react'
+import { Navigation, RefreshCw, Flag, Ban, AlertTriangle, X } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 import { updateRecommendation, deleteRecommendation } from '../services/firestore'
@@ -1207,14 +1207,36 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
               }
 
               return (
-                /* Outer card — variable height to allow expanded review panel.
-                   Main 72px row is an inner div. Left tap = read mode (expand).
-                   Right tap = write mode (banner). */
+                /* Outer wrapper — flex column so nudge sits flush above the card */
                 <div
                   key={place.placeId}
                   data-place-id={place.placeId}
                   ref={el => { cardRefs.current[place.placeId] = el }}
-                  style={{
+                  style={{ display: 'flex', flexDirection: 'column' }}
+                >
+                  {/* No-reviews nudge — blue pill, slides in above the card */}
+                  <div style={{
+                    overflow: 'hidden',
+                    maxHeight: noCommentPlaceId === place.placeId ? 36 : 0,
+                    transition: 'max-height 0.2s cubic-bezier(0.2,0,0,1)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                  }}>
+                    <div style={{
+                      background: '#3B82F6',
+                      color: 'white',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: '7px 16px',
+                      borderRadius: '10px 10px 0 0',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      no reviews yet — tap a light or flag to be first!
+                    </div>
+                  </div>
+
+                  {/* Card */}
+                  <div style={{
                     borderRadius: 12,
                     overflow: 'hidden',
                     background: '#263347',
@@ -1338,25 +1360,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
                   </div>
 
                   </div>{/* end main row */}
-
-                  {/* No-reviews nudge — expands below the card row */}
-                  <div style={{
-                    maxHeight: noCommentPlaceId === place.placeId ? 56 : 0,
-                    overflow: 'hidden',
-                    transition: 'max-height 0.2s cubic-bezier(0.2,0,0,1)',
-                  }}>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '10px 12px',
-                      background: 'rgba(255,107,53,0.13)',
-                      borderTop: '2px solid rgba(255,107,53,0.55)',
-                    }}>
-                      <MessageCircle size={14} color="#FF6B35" style={{ flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: '#FF6B35', fontWeight: 700 }}>no reviews yet</span>
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>— tap a light or flag to be first!</span>
-                    </div>
-                  </div>
-                </div>
+                  </div>{/* end card */}
+                </div>{/* end outer wrapper */}
               )
             })}
           </div>
