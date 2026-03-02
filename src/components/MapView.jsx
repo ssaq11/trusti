@@ -394,21 +394,14 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
     } else {
       // Google Places search (always runs for 'all', or when a keyword/category is active)
       if (keyword) {
-        const [keywordResults, nearbyResults] = await Promise.all([
-          searchNearby(mapInstanceRef.current, center, keyword),
-          searchNearby(mapInstanceRef.current, center, ''),
-        ])
+        results = await searchNearby(mapInstanceRef.current, center, keyword)
         if (gen !== searchGenRef.current) return
 
-        const keywordPlaceIds = new Set(keywordResults.map(r => r.placeId))
         const keywordWords = keyword.toLowerCase().split(/\s+/).filter(w => w.length > 1)
-        keywordResults.forEach(r => {
+        results.forEach(r => {
           const nameLower = r.name.toLowerCase()
           if (keywordWords.some(w => nameLower.includes(w))) r._keywordMatch = true
         })
-
-        results = keywordResults
-        nearbyResults.forEach(r => { if (!keywordPlaceIds.has(r.placeId)) results.push(r) })
       } else {
         results = await searchNearby(mapInstanceRef.current, center, '')
         if (gen !== searchGenRef.current) return

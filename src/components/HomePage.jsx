@@ -289,7 +289,7 @@ export default function HomePage() {
 
           {/* Category chips */}
           {showCategories && (
-            <div className="flex gap-2 mt-2 overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex gap-2 mt-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
               {CATEGORIES.map(cat => (
                 <button
                   key={cat}
