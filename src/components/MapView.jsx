@@ -428,6 +428,11 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
       // Also add trusti-reviewed and bookmarked places not already in results
       const resultPlaceIds = new Set(results.map(r => r.placeId))
       const bounds = mapInstanceRef.current.getBounds()
+
+      // DEBUG
+      console.log('[trusti-debug] overlay check — reviewsByPlace:', reviewsByPlace.size, 'bookmarks:', bookmarks.length, 'userIntents:', userIntentsRef.current.length)
+      console.log('[trusti-debug] bounds:', bounds ? `${bounds.getSouthWest().lat().toFixed(4)},${bounds.getSouthWest().lng().toFixed(4)} → ${bounds.getNorthEast().lat().toFixed(4)},${bounds.getNorthEast().lng().toFixed(4)}` : 'null')
+
       reviewsByPlace.forEach((recs, placeId) => {
         if (resultPlaceIds.has(placeId)) return
         const rec = recs[0]
@@ -463,7 +468,39 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
               photoUrl: null,
               rating: null,
             })
+            resultPlaceIds.add(b.placeId)
           }
+        }
+      })
+      // Always include intent-flagged places — flags are critical signals and must
+      // stay visible at every zoom level, same priority as reviewed/bookmarked places
+      console.log('[trusti-debug] intents to overlay:', userIntentsRef.current.map(i => ({ name: i.placeName, placeId: i.placeId, lat: i.placeLat, lng: i.placeLng, type: i.type })))
+      userIntentsRef.current.forEach(intent => {
+        const alreadyIn = resultPlaceIds.has(intent.placeId)
+        const lat = intent.placeLat
+        const lng = intent.placeLng
+        const hasCoords = lat != null && lng != null
+        const inBounds = hasCoords && bounds && bounds.contains(new window.google.maps.LatLng(lat, lng))
+        console.log(`[trusti-debug] intent "${intent.placeName}" (${intent.type}): alreadyIn=${alreadyIn}, lat=${lat}, lng=${lng}, hasCoords=${hasCoords}, inBounds=${inBounds}`)
+        if (alreadyIn) return
+        if (lat != null && lng != null) {
+          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
+            results.push({
+              placeId: intent.placeId,
+              name: intent.placeName,
+              address: intent.placeAddress || '',
+              lat,
+              lng,
+              photoUrl: null,
+              rating: null,
+            })
+            resultPlaceIds.add(intent.placeId)
+            console.log(`[trusti-debug] ✅ added "${intent.placeName}" to results`)
+          } else {
+            console.log(`[trusti-debug] ❌ "${intent.placeName}" out of bounds — skipped`)
+          }
+        } else {
+          console.log(`[trusti-debug] ❌ "${intent.placeName}" missing coords — skipped`)
         }
       })
     }
@@ -759,13 +796,13 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, searchKeyword, filter])
 
-  // Re-search when Firebase data (trustiRecs/bookmarks) arrives after map is ready
+  // Re-search when Firebase data (trustiRecs/bookmarks/userIntents) arrives after map is ready
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return
     const c = mapInstanceRef.current.getCenter()
     searchAtLocationRef.current?.({ lat: c.lat(), lng: c.lng() }, searchKeywordRef.current || '')
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady, trustiRecs, bookmarks])
+  }, [mapReady, trustiRecs, bookmarks, userIntents])
 
   function closeExpanded() {
     setExpandVisible(false)
