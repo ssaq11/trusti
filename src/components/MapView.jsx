@@ -415,8 +415,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
         // Keyword active: filter Google results to only those with flags
         const intentSet = new Set(userIntentsRef.current.map(i => i.placeId))
         results = results.filter(r => intentSet.has(r.placeId))
-      } else {
-        // 'all': overlay trusti-reviewed, bookmarked, and flagged places not in Google results
+      } else if (!keyword) {
+        // 'all' no keyword: overlay trusti-reviewed, bookmarked, and flagged places not in Google results
         const resultPlaceIds = new Set(results.map(r => r.placeId))
         const bounds = mapInstanceRef.current.getBounds()
 
