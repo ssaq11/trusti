@@ -16,7 +16,7 @@ export default function HomePage() {
   const [showAdd, setShowAdd] = useState(null) // add recommendation modal
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchInput, setSearchInput] = useState('')
-  const [filter, setFilter] = useState('all') // 'all' | 'reviewed' | 'bookmarked'
+  const [filter, setFilter] = useState('all') // 'all' | 'trusti' | 'flags'
   const [showRecent, setShowRecent] = useState(false)
   const [recentSearches, setRecentSearches] = useState(() => {
     try { return JSON.parse(localStorage.getItem('trusti_recent_searches') || '[]') } catch { return [] }
@@ -261,17 +261,17 @@ export default function HomePage() {
           {/* Filter tabs */}
           <div className="flex gap-2 mt-2">
             {[
-              { key: 'all', label: 'All' },
-              { key: 'reviewed', label: 'Trusti Reviews' },
-              { key: 'bookmarked', label: 'Want to Go' },
+              { key: 'all', label: 'all' },
+              { key: 'trusti', label: 'trusti' },
+              { key: 'flags', label: 'flags' },
             ].map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors backdrop-blur-sm ${
                   filter === tab.key
-                    ? 'bg-green-600 text-white border border-green-600'
-                    : 'bg-slate-800/90 text-slate-400 hover:bg-slate-700 border-2 border-green-600/40'
+                    ? 'bg-[#FF6B35] text-white border border-[#FF6B35]'
+                    : 'bg-slate-800/90 text-slate-400 hover:bg-slate-700 border border-slate-600'
                 }`}
               >
                 {tab.label}

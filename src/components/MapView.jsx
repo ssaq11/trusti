@@ -354,9 +354,11 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
 
     let results = []
 
-    // For "reviewed" and "bookmarked" filters, skip Google Places search
-    if (activeFilter === 'reviewed') {
+    // For focused filters, skip Google Places search and show only Trusti data
+    if (activeFilter === 'trusti') {
+      // Places with reviews OR flags from the user's network
       const bounds = mapInstanceRef.current.getBounds()
+      const addedIds = new Set()
       reviewsByPlace.forEach((recs, placeId) => {
         const rec = recs[0]
         const lat = rec.restaurantLat
@@ -372,20 +374,41 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
               photoUrl: null,
               rating: null,
             })
+            addedIds.add(placeId)
           }
         }
       })
-    } else if (activeFilter === 'bookmarked') {
-      const bounds = mapInstanceRef.current.getBounds()
-      bookmarks.forEach(b => {
-        const lat = b.placeLat
-        const lng = b.placeLng
+      userIntentsRef.current.forEach(intent => {
+        if (addedIds.has(intent.placeId)) return
+        const lat = intent.placeLat
+        const lng = intent.placeLng
         if (lat != null && lng != null) {
           if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
             results.push({
-              placeId: b.placeId,
-              name: b.placeName,
-              address: b.placeAddress || '',
+              placeId: intent.placeId,
+              name: intent.placeName,
+              address: intent.placeAddress || '',
+              lat,
+              lng,
+              photoUrl: null,
+              rating: null,
+            })
+            addedIds.add(intent.placeId)
+          }
+        }
+      })
+    } else if (activeFilter === 'flags') {
+      // Only intent-flagged places (try / pass)
+      const bounds = mapInstanceRef.current.getBounds()
+      userIntentsRef.current.forEach(intent => {
+        const lat = intent.placeLat
+        const lng = intent.placeLng
+        if (lat != null && lng != null) {
+          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
+            results.push({
+              placeId: intent.placeId,
+              name: intent.placeName,
+              address: intent.placeAddress || '',
               lat,
               lng,
               photoUrl: null,
@@ -517,8 +540,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
       })
     }
 
-    // Sort by rating when in "reviewed" filter
-    if (activeFilter === 'reviewed') {
+    // Sort by rating when in "trusti" filter
+    if (activeFilter === 'trusti') {
       results.sort((a, b) => {
         const countsA = getDeduplicatedCounts(reviewsByPlace.get(a.placeId) || [])
         const countsB = getDeduplicatedCounts(reviewsByPlace.get(b.placeId) || [])
@@ -1213,10 +1236,10 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
           <p className="text-center text-gray-400 text-sm py-6">
             {!isGoogleMapsLoaded()
               ? 'Maps not loaded. Enable billing on Google Cloud to use Places API.'
-              : filter === 'reviewed'
-              ? 'No trusti reviews in this area yet. Be the first!'
-              : filter === 'bookmarked'
-              ? 'No saved places in this area. Bookmark places to see them here!'
+              : filter === 'trusti'
+              ? 'No trusti reviews or flags in this area yet.'
+              : filter === 'flags'
+              ? 'No flags in this area. Flag places as want to go or pass.'
               : 'No restaurants found nearby. Try a different search.'}
           </p>
         )}
