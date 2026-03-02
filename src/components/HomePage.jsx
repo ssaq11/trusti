@@ -207,7 +207,6 @@ export default function HomePage() {
       setActiveCategory(cat)
       setSearchInput('')
       setShowRecent(false)
-      if (filter !== 'all') setFilter('all')
       setSearchKeyword(cat)
     }
   }

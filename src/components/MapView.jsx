@@ -354,9 +354,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
 
     let results = []
 
-    // For focused filters, skip Google Places search and show only Trusti data
-    if (activeFilter === 'trusti') {
-      // Places with reviews OR flags from the user's network
+    // Trusti/flags without a keyword: skip Google Places, show only Firestore data
+    if (activeFilter === 'trusti' && !keyword) {
       const bounds = mapInstanceRef.current.getBounds()
       const addedIds = new Set()
       reviewsByPlace.forEach((recs, placeId) => {
@@ -365,15 +364,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
         const lng = rec.restaurantLng
         if (lat != null && lng != null) {
           if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
-            results.push({
-              placeId,
-              name: rec.restaurantName,
-              address: rec.restaurantAddress || '',
-              lat,
-              lng,
-              photoUrl: null,
-              rating: null,
-            })
+            results.push({ placeId, name: rec.restaurantName, address: rec.restaurantAddress || '', lat, lng, photoUrl: null, rating: null })
             addedIds.add(placeId)
           }
         }
@@ -384,41 +375,24 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
         const lng = intent.placeLng
         if (lat != null && lng != null) {
           if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
-            results.push({
-              placeId: intent.placeId,
-              name: intent.placeName,
-              address: intent.placeAddress || '',
-              lat,
-              lng,
-              photoUrl: null,
-              rating: null,
-            })
+            results.push({ placeId: intent.placeId, name: intent.placeName, address: intent.placeAddress || '', lat, lng, photoUrl: null, rating: null })
             addedIds.add(intent.placeId)
           }
         }
       })
-    } else if (activeFilter === 'flags') {
-      // Only intent-flagged places (try / pass)
+    } else if (activeFilter === 'flags' && !keyword) {
       const bounds = mapInstanceRef.current.getBounds()
       userIntentsRef.current.forEach(intent => {
         const lat = intent.placeLat
         const lng = intent.placeLng
         if (lat != null && lng != null) {
           if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
-            results.push({
-              placeId: intent.placeId,
-              name: intent.placeName,
-              address: intent.placeAddress || '',
-              lat,
-              lng,
-              photoUrl: null,
-              rating: null,
-            })
+            results.push({ placeId: intent.placeId, name: intent.placeName, address: intent.placeAddress || '', lat, lng, photoUrl: null, rating: null })
           }
         }
       })
     } else {
-      // "all" filter — use Google Places search
+      // Google Places search (always runs for 'all', or when a keyword/category is active)
       if (keyword) {
         const [keywordResults, nearbyResults] = await Promise.all([
           searchNearby(mapInstanceRef.current, center, keyword),
@@ -430,102 +404,78 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
         const keywordWords = keyword.toLowerCase().split(/\s+/).filter(w => w.length > 1)
         keywordResults.forEach(r => {
           const nameLower = r.name.toLowerCase()
-          if (keywordWords.some(w => nameLower.includes(w))) {
-            r._keywordMatch = true
-          }
+          if (keywordWords.some(w => nameLower.includes(w))) r._keywordMatch = true
         })
 
         results = keywordResults
-
-        nearbyResults.forEach(r => {
-          if (!keywordPlaceIds.has(r.placeId)) {
-            results.push(r)
-          }
-        })
-
+        nearbyResults.forEach(r => { if (!keywordPlaceIds.has(r.placeId)) results.push(r) })
       } else {
         results = await searchNearby(mapInstanceRef.current, center, '')
         if (gen !== searchGenRef.current) return
       }
 
-      // Also add trusti-reviewed and bookmarked places not already in results
-      const resultPlaceIds = new Set(results.map(r => r.placeId))
-      const bounds = mapInstanceRef.current.getBounds()
+      if (activeFilter === 'trusti') {
+        // Keyword active: filter Google results to only those with trusti reviews or flags
+        const intentSet = new Set(userIntentsRef.current.map(i => i.placeId))
+        results = results.filter(r => reviewsByPlace.has(r.placeId) || intentSet.has(r.placeId))
+      } else if (activeFilter === 'flags') {
+        // Keyword active: filter Google results to only those with flags
+        const intentSet = new Set(userIntentsRef.current.map(i => i.placeId))
+        results = results.filter(r => intentSet.has(r.placeId))
+      } else {
+        // 'all': overlay trusti-reviewed, bookmarked, and flagged places not in Google results
+        const resultPlaceIds = new Set(results.map(r => r.placeId))
+        const bounds = mapInstanceRef.current.getBounds()
 
-      // DEBUG
-      console.log('[trusti-debug] overlay check — reviewsByPlace:', reviewsByPlace.size, 'bookmarks:', bookmarks.length, 'userIntents:', userIntentsRef.current.length)
-      console.log('[trusti-debug] bounds:', bounds ? `${bounds.getSouthWest().lat().toFixed(4)},${bounds.getSouthWest().lng().toFixed(4)} → ${bounds.getNorthEast().lat().toFixed(4)},${bounds.getNorthEast().lng().toFixed(4)}` : 'null')
+        // DEBUG
+        console.log('[trusti-debug] overlay check — reviewsByPlace:', reviewsByPlace.size, 'bookmarks:', bookmarks.length, 'userIntents:', userIntentsRef.current.length)
+        console.log('[trusti-debug] bounds:', bounds ? `${bounds.getSouthWest().lat().toFixed(4)},${bounds.getSouthWest().lng().toFixed(4)} → ${bounds.getNorthEast().lat().toFixed(4)},${bounds.getNorthEast().lng().toFixed(4)}` : 'null')
 
-      reviewsByPlace.forEach((recs, placeId) => {
-        if (resultPlaceIds.has(placeId)) return
-        const rec = recs[0]
-        const lat = rec.restaurantLat
-        const lng = rec.restaurantLng
-        if (lat != null && lng != null) {
-          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
-            results.push({
-              placeId,
-              name: rec.restaurantName,
-              address: rec.restaurantAddress || '',
-              lat,
-              lng,
-              photoUrl: null,
-              rating: null,
-            })
-            resultPlaceIds.add(placeId)
+        reviewsByPlace.forEach((recs, placeId) => {
+          if (resultPlaceIds.has(placeId)) return
+          const rec = recs[0]
+          const lat = rec.restaurantLat
+          const lng = rec.restaurantLng
+          if (lat != null && lng != null) {
+            if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
+              results.push({ placeId, name: rec.restaurantName, address: rec.restaurantAddress || '', lat, lng, photoUrl: null, rating: null })
+              resultPlaceIds.add(placeId)
+            }
           }
-        }
-      })
-      bookmarks.forEach(b => {
-        if (resultPlaceIds.has(b.placeId)) return
-        const lat = b.placeLat
-        const lng = b.placeLng
-        if (lat != null && lng != null) {
-          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
-            results.push({
-              placeId: b.placeId,
-              name: b.placeName,
-              address: b.placeAddress || '',
-              lat,
-              lng,
-              photoUrl: null,
-              rating: null,
-            })
-            resultPlaceIds.add(b.placeId)
+        })
+        bookmarks.forEach(b => {
+          if (resultPlaceIds.has(b.placeId)) return
+          const lat = b.placeLat
+          const lng = b.placeLng
+          if (lat != null && lng != null) {
+            if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
+              results.push({ placeId: b.placeId, name: b.placeName, address: b.placeAddress || '', lat, lng, photoUrl: null, rating: null })
+              resultPlaceIds.add(b.placeId)
+            }
           }
-        }
-      })
-      // Always include intent-flagged places — flags are critical signals and must
-      // stay visible at every zoom level, same priority as reviewed/bookmarked places
-      console.log('[trusti-debug] intents to overlay:', userIntentsRef.current.map(i => ({ name: i.placeName, placeId: i.placeId, lat: i.placeLat, lng: i.placeLng, type: i.type })))
-      userIntentsRef.current.forEach(intent => {
-        const alreadyIn = resultPlaceIds.has(intent.placeId)
-        const lat = intent.placeLat
-        const lng = intent.placeLng
-        const hasCoords = lat != null && lng != null
-        const inBounds = hasCoords && bounds && bounds.contains(new window.google.maps.LatLng(lat, lng))
-        console.log(`[trusti-debug] intent "${intent.placeName}" (${intent.type}): alreadyIn=${alreadyIn}, lat=${lat}, lng=${lng}, hasCoords=${hasCoords}, inBounds=${inBounds}`)
-        if (alreadyIn) return
-        if (lat != null && lng != null) {
-          if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
-            results.push({
-              placeId: intent.placeId,
-              name: intent.placeName,
-              address: intent.placeAddress || '',
-              lat,
-              lng,
-              photoUrl: null,
-              rating: null,
-            })
-            resultPlaceIds.add(intent.placeId)
-            console.log(`[trusti-debug] ✅ added "${intent.placeName}" to results`)
+        })
+        console.log('[trusti-debug] intents to overlay:', userIntentsRef.current.map(i => ({ name: i.placeName, placeId: i.placeId, lat: i.placeLat, lng: i.placeLng, type: i.type })))
+        userIntentsRef.current.forEach(intent => {
+          const alreadyIn = resultPlaceIds.has(intent.placeId)
+          const lat = intent.placeLat
+          const lng = intent.placeLng
+          const hasCoords = lat != null && lng != null
+          const inBounds = hasCoords && bounds && bounds.contains(new window.google.maps.LatLng(lat, lng))
+          console.log(`[trusti-debug] intent "${intent.placeName}" (${intent.type}): alreadyIn=${alreadyIn}, lat=${lat}, lng=${lng}, hasCoords=${hasCoords}, inBounds=${inBounds}`)
+          if (alreadyIn) return
+          if (lat != null && lng != null) {
+            if (!bounds || bounds.contains(new window.google.maps.LatLng(lat, lng))) {
+              results.push({ placeId: intent.placeId, name: intent.placeName, address: intent.placeAddress || '', lat, lng, photoUrl: null, rating: null })
+              resultPlaceIds.add(intent.placeId)
+              console.log(`[trusti-debug] ✅ added "${intent.placeName}" to results`)
+            } else {
+              console.log(`[trusti-debug] ❌ "${intent.placeName}" out of bounds — skipped`)
+            }
           } else {
-            console.log(`[trusti-debug] ❌ "${intent.placeName}" out of bounds — skipped`)
+            console.log(`[trusti-debug] ❌ "${intent.placeName}" missing coords — skipped`)
           }
-        } else {
-          console.log(`[trusti-debug] ❌ "${intent.placeName}" missing coords — skipped`)
-        }
-      })
+        })
+      }
     }
 
     // Sort: keyword matches first, then reviewed places, then rest
