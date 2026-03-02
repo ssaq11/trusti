@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, Clock, Menu, X, Users, User } from 'lucide-react'
+import { Search, Clock, Menu, X, Users, User, LayoutGrid } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords, setIntent, deleteIntent, getUserIntents, addRecommendation } from '../services/firestore'
@@ -17,6 +17,10 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [filter, setFilter] = useState('all') // 'all' | 'trusti' | 'flags'
+  const [showCategories, setShowCategories] = useState(false)
+  const [activeCategory, setActiveCategory] = useState(null)
+
+  const CATEGORIES = ['Cocktails', 'Coffee', 'Pizza', 'Italian', 'Asian', 'Dessert', 'Brunch', 'Wine Bar']
   const [showRecent, setShowRecent] = useState(false)
   const [recentSearches, setRecentSearches] = useState(() => {
     try { return JSON.parse(localStorage.getItem('trusti_recent_searches') || '[]') } catch { return [] }
@@ -192,6 +196,20 @@ export default function HomePage() {
     setSearchInput('')
     setSearchKeyword('')
     setShowRecent(false)
+    setActiveCategory(null)
+  }
+
+  function handleCategorySelect(cat) {
+    if (activeCategory === cat) {
+      setActiveCategory(null)
+      setSearchKeyword('')
+    } else {
+      setActiveCategory(cat)
+      setSearchInput('')
+      setShowRecent(false)
+      if (filter !== 'all') setFilter('all')
+      setSearchKeyword(cat)
+    }
   }
 
   return (
@@ -216,7 +234,7 @@ export default function HomePage() {
             >
               <Menu size={18} />
             </button>
-            <div className="relative w-[70%]">
+            <div className="relative flex-1">
               <form onSubmit={handleSearch} className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white" />
                 <input
@@ -224,7 +242,7 @@ export default function HomePage() {
                   type="text"
                   placeholder="Find a place..."
                   value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
+                  onChange={(e) => { setSearchInput(e.target.value); setActiveCategory(null) }}
                   onFocus={() => { if (recentSearches.length > 0 && !searchInput) setShowRecent(true) }}
                   onBlur={() => setTimeout(() => setShowRecent(false), 150)}
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-700 border border-slate-500 text-white text-sm placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -257,7 +275,38 @@ export default function HomePage() {
                 </div>
               )}
             </div>
+            <button
+              onClick={() => setShowCategories(v => !v)}
+              className={`p-2.5 rounded-xl border backdrop-blur-sm shrink-0 transition-colors ${
+                showCategories || activeCategory
+                  ? 'bg-[#FF6B35] border-[#FF6B35] text-white'
+                  : 'bg-slate-800/90 border-slate-700 text-slate-300'
+              }`}
+              title="Browse categories"
+            >
+              <LayoutGrid size={18} />
+            </button>
           </div>
+
+          {/* Category chips */}
+          {showCategories && (
+            <div className="flex gap-2 mt-2 overflow-x-auto pb-1 scrollbar-hide">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => handleCategorySelect(cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors backdrop-blur-sm shrink-0 ${
+                    activeCategory === cat
+                      ? 'bg-[#FF6B35] text-white border border-[#FF6B35]'
+                      : 'bg-slate-800/90 text-slate-300 hover:bg-slate-700 border border-slate-600'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Filter tabs */}
           <div className="flex gap-2 mt-2">
             {[
