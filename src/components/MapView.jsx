@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Navigation, RefreshCw, Flag, Ban, AlertTriangle, X } from 'lucide-react'
+import { Navigation, RefreshCw, Flag, Ban, AlertTriangle, X, MessageCircle } from 'lucide-react'
 import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 import { updateRecommendation, deleteRecommendation } from '../services/firestore'
@@ -918,6 +918,19 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
             </div>
           )}
         </div>
+
+        {/* Feedback button */}
+        {mapReady && (
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSdljkOVta4P4ucLnfuvWZ2Ldy0PPcqda6sRyj4K8xt6dNSZLw/viewform?usp=publish-editor"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute bottom-14 left-3 bg-slate-700 rounded-lg shadow-md p-2 opacity-60 hover:opacity-100 active:opacity-100 transition-opacity"
+            title="Share feedback"
+          >
+            <MessageCircle size={18} className="text-[#FF6B35]" />
+          </a>
+        )}
 
         {/* My Location button */}
         {mapReady && (
