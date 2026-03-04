@@ -202,12 +202,11 @@ export default function HomePage() {
   function handleCategorySelect(cat) {
     if (activeCategory === cat) {
       setActiveCategory(null)
-      setSearchKeyword('')
     } else {
       setActiveCategory(cat)
       setSearchInput('')
+      setSearchKeyword('')
       setShowRecent(false)
-      setSearchKeyword(cat)
     }
   }
 
@@ -341,6 +340,7 @@ export default function HomePage() {
           trustiRecs={allRecs}
           bookmarks={allBookmarks}
           filter={filter}
+          activeCategory={activeCategory}
         />
       </div>
 

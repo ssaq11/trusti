@@ -186,6 +186,67 @@ export async function searchNearby(mapInstance, location, keyword = '') {
   }
 }
 
+// Category chip → Google Places primary types mapping
+export const CATEGORY_TYPES = {
+  'Cocktails':  ['bar', 'cocktail_bar'],
+  'Coffee':     ['cafe', 'coffee_shop'],
+  'Pizza':      ['pizza_restaurant'],
+  'Italian':    ['italian_restaurant'],
+  'Asian':      ['asian_restaurant', 'chinese_restaurant', 'japanese_restaurant', 'korean_restaurant', 'thai_restaurant', 'vietnamese_restaurant'],
+  'Dessert':    ['dessert_restaurant', 'dessert_shop', 'ice_cream_shop', 'bakery'],
+  'Brunch':     ['brunch_restaurant', 'breakfast_restaurant'],
+  'Wine Bar':   ['wine_bar'],
+}
+
+// Search nearby by structured place types (category chips) — does NOT text-match place names
+export async function searchByCategory(mapInstance, location, types) {
+  if (!types || types.length === 0) return []
+  const loaded = await waitForGoogle()
+  if (!loaded || !mapInstance) return []
+
+  const Place = window.google.maps.places.Place
+  const bounds = mapInstance.getBounds?.() || null
+  const PLACE_FIELDS = ['id', 'displayName', 'formattedAddress', 'location', 'rating', 'photos', 'types']
+
+  function mapPlaceResult(p) {
+    return {
+      placeId: p.id,
+      name: p.displayName,
+      address: p.formattedAddress || '',
+      lat: p.location?.lat(),
+      lng: p.location?.lng(),
+      rating: p.rating,
+      priceLevel: p.priceLevel,
+      photoUrl: p.photos?.[0]?.getURI({ maxWidth: 200 }) || null,
+      types: p.types || [],
+    }
+  }
+
+  try {
+    const center = bounds
+      ? { lat: bounds.getCenter().lat(), lng: bounds.getCenter().lng() }
+      : { lat: location.lat, lng: location.lng }
+    const radius = bounds
+      ? Math.max(Math.abs(bounds.getNorthEast().lat() - bounds.getSouthWest().lat()) * 111000 / 2, 500)
+      : 3000
+    const { places } = await Place.searchNearby({
+      fields: PLACE_FIELDS,
+      locationRestriction: { center, radius: Math.min(radius, 50000) },
+      includedPrimaryTypes: types,
+      maxResultCount: 20,
+    })
+    const results = (places || []).map(mapPlaceResult)
+    if (!bounds) return results
+    return results.filter(r => {
+      if (r.lat == null || r.lng == null) return false
+      return bounds.contains(new window.google.maps.LatLng(r.lat, r.lng))
+    })
+  } catch (err) {
+    console.warn('searchByCategory failed:', err)
+    return []
+  }
+}
+
 // Food & drink place types — everything else (gas stations, stores, etc.) is hidden
 const FOOD_DRINK_TYPES = new Set([
   'restaurant', 'cafe', 'bar', 'bakery', 'meal_delivery', 'meal_takeaway',

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Navigation, RefreshCw, Flag, Ban, AlertTriangle, X, MessageCircle } from 'lucide-react'
-import { searchNearby, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
+import { searchNearby, searchByCategory, CATEGORY_TYPES, isGoogleMapsLoaded, isFoodOrDrink } from '../services/places'
 import { getDeduplicatedCounts, getDominantRating } from '../utils/ratings'
 import { updateRecommendation, deleteRecommendation } from '../services/firestore'
 import TrafficLight from './TrafficLight'
@@ -213,7 +213,7 @@ const INTEL_DATA = {
   pass:   { placeholder: "What's the warning?...", borderColor: '#f87171', chips: ['Overhyped','Impossible to get in','Sketchy vibe'] }
 }
 
-export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIntentSubmit, onClearIntent, currentUser, userIntents = [], onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all' }) {
+export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIntentSubmit, onClearIntent, currentUser, userIntents = [], onClearSearch, searchKeyword, trustiRecs = [], bookmarks = [], filter = 'all', activeCategory = null }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersRef = useRef([])
@@ -223,6 +223,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
   const userMarkerRef = useRef(null)
   const searchKeywordRef = useRef(searchKeyword)
   const filterRef = useRef(filter)
+  const activeCategoryRef = useRef(activeCategory)
   const searchAtLocationRef = useRef(null)
   const idleTimerRef = useRef(null)
   const skipNextIdleRef = useRef(false)
@@ -290,6 +291,10 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
   useEffect(() => {
     filterRef.current = filter
   }, [filter])
+
+  useEffect(() => {
+    activeCategoryRef.current = activeCategory
+  }, [activeCategory])
 
   useEffect(() => {
     userIntentsRef.current = userIntents
@@ -402,6 +407,11 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
           const nameLower = r.name.toLowerCase()
           if (keywordWords.some(w => nameLower.includes(w))) r._keywordMatch = true
         })
+      } else if (activeCategoryRef.current) {
+        // Category chip: filter by place type, not place name
+        const types = CATEGORY_TYPES[activeCategoryRef.current] || []
+        results = await searchByCategory(mapInstanceRef.current, center, types)
+        if (gen !== searchGenRef.current) return
       } else {
         results = await searchNearby(mapInstanceRef.current, center, '')
         if (gen !== searchGenRef.current) return
@@ -760,7 +770,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
       doSearch()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady, searchKeyword, filter])
+  }, [mapReady, searchKeyword, filter, activeCategory])
 
   // Re-search when Firebase data (trustiRecs/bookmarks/userIntents) arrives after map is ready
   useEffect(() => {
