@@ -305,8 +305,16 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Filter tabs */}
-          <div className="flex gap-2 mt-2">
+          {/* Filter tabs + persisted active chip when tray is closed */}
+          <div className="flex gap-2 mt-2 items-center">
+            {activeCategory && !showCategories && (
+              <button
+                onClick={() => handleCategorySelect(activeCategory)}
+                className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors backdrop-blur-sm shrink-0 bg-[#FF6B35] text-white border border-[#FF6B35]"
+              >
+                {activeCategory} ×
+              </button>
+            )}
             {[
               { key: 'all', label: 'all' },
               { key: 'trusti', label: 'trusti' },
