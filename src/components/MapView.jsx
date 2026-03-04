@@ -359,8 +359,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
 
     let results = []
 
-    // Trusti/flags without a keyword: skip Google Places, show only Firestore data
-    if (activeFilter === 'trusti' && !keyword) {
+    // Trusti/flags without a keyword or category: skip Google Places, show only Firestore data
+    if (activeFilter === 'trusti' && !keyword && !activeCategoryRef.current) {
       const bounds = mapInstanceRef.current.getBounds()
       const addedIds = new Set()
       reviewsByPlace.forEach((recs, placeId) => {
@@ -385,7 +385,7 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
           }
         }
       })
-    } else if (activeFilter === 'flags' && !keyword) {
+    } else if (activeFilter === 'flags' && !keyword && !activeCategoryRef.current) {
       const bounds = mapInstanceRef.current.getBounds()
       userIntentsRef.current.forEach(intent => {
         const lat = intent.placeLat
@@ -425,8 +425,8 @@ export default function MapView({ onPlaceSelect, onAddReview, onReviewPost, onIn
         // Keyword active: filter Google results to only those with flags
         const intentSet = new Set(userIntentsRef.current.map(i => i.placeId))
         results = results.filter(r => intentSet.has(r.placeId))
-      } else if (!keyword) {
-        // 'all' no keyword: overlay trusti-reviewed, bookmarked, and flagged places not in Google results
+      } else if (!keyword && !activeCategoryRef.current) {
+        // 'all' no keyword/category: overlay trusti-reviewed, bookmarked, and flagged places not in Google results
         const resultPlaceIds = new Set(results.map(r => r.placeId))
         const bounds = mapInstanceRef.current.getBounds()
 
