@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Search, Clock, Menu, X, Users, User, LayoutGrid } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getTrusti9, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords, setIntent, deleteIntent, getUserIntents, addRecommendation } from '../services/firestore'
+import { getFollowingIds, getFeedRecommendations, getDiscoverRecommendations, getBookmarks, backfillRecCoords, backfillBookmarkCoords, setIntent, deleteIntent, getUserIntents, addRecommendation } from '../services/firestore'
 import MapView from './MapView'
 import PlaceDetail from './PlaceDetail'
 import AddRecommendation from './AddRecommendation'
@@ -38,7 +38,7 @@ export default function HomePage() {
   // Load all recommendations to overlay on map
   const loadRecs = useCallback(async () => {
     try {
-      const ids = await getTrusti9(user.uid)
+      const ids = await getFollowingIds(user.uid)
       const allIds = [...ids, user.uid]
       const recs = await getFeedRecommendations(allIds)
       if (recs.length === 0) {

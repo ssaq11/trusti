@@ -4,7 +4,7 @@ import { Search, Share2, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import {
   searchUsers, followUser, unfollowUser, isFollowing,
-  getFollowingProfiles, getTrusti9
+  getFollowingProfiles, getTrusti9, MAX_FOLLOWS
 } from '../services/firestore'
 
 export default function SearchPage() {
@@ -150,6 +150,15 @@ export default function SearchPage() {
             <ArrowLeft size={20} />
           </Link>
           <h1 className="text-xl font-bold text-white">trusti friends</h1>
+          {!loadingFriends && (
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+              friends.length >= MAX_FOLLOWS
+                ? 'bg-orange-500/20 text-orange-400'
+                : 'bg-slate-700 text-slate-400'
+            }`}>
+              {friends.length}/{MAX_FOLLOWS}
+            </span>
+          )}
         </div>
         <button
           onClick={handleInvite}
@@ -279,36 +288,46 @@ export default function SearchPage() {
           />
         </div>
 
+        {friends.length >= MAX_FOLLOWS && (
+          <p className="text-xs text-orange-400 text-center py-2 mb-2">
+            you've reached the {MAX_FOLLOWS}-friend limit — remove someone to add a new one
+          </p>
+        )}
         <div className="space-y-1">
           {searching && <p className="text-center text-slate-400 text-xs py-4">Searching...</p>}
           {!searching && searched && filteredResults.length === 0 && (
-            <p className="text-center text-slate-400 text-sm py-4">No new people found</p>
+            <p className="text-center text-slate-400 text-sm py-4">No people found</p>
           )}
-          {filteredResults.map(u => (
-            <div key={u.uid} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-800 transition-colors">
-              <Link to={`/user/${u.uid}`} className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-400 overflow-hidden shrink-0">
-                  {u.photoURL ? (
-                    <img src={u.photoURL} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    u.displayName?.[0]?.toUpperCase()
-                  )}
-                </div>
-                <p className="text-sm text-white truncate">{u.displayName}</p>
-              </Link>
-              <button
-                onClick={() => followingMap[u.uid] ? handleRemoveContact(u.uid) : handleAddContact(u.uid)}
-                disabled={loadingActions[u.uid]}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
-                  followingMap[u.uid]
-                    ? 'bg-slate-700 text-slate-400 hover:bg-red-900 hover:text-red-500'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                {followingMap[u.uid] ? 'Remove' : '+ Add'}
-              </button>
-            </div>
-          ))}
+          {filteredResults.map(u => {
+            const atLimit = friends.length >= MAX_FOLLOWS && !followingMap[u.uid]
+            return (
+              <div key={u.uid} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-800 transition-colors">
+                <Link to={`/user/${u.uid}`} className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-400 overflow-hidden shrink-0">
+                    {u.photoURL ? (
+                      <img src={u.photoURL} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      u.displayName?.[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <p className="text-sm text-white truncate">{u.displayName}</p>
+                </Link>
+                <button
+                  onClick={() => followingMap[u.uid] ? handleRemoveContact(u.uid) : handleAddContact(u.uid)}
+                  disabled={loadingActions[u.uid] || atLimit}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
+                    followingMap[u.uid]
+                      ? 'bg-slate-700 text-slate-400 hover:bg-red-900 hover:text-red-500'
+                      : atLimit
+                        ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                >
+                  {followingMap[u.uid] ? 'Remove' : '+ Add'}
+                </button>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

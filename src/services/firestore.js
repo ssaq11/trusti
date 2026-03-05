@@ -94,7 +94,14 @@ export async function updateRecommendation(recId, data) {
 
 // --- FOLLOWS ---
 
+export const MAX_FOLLOWS = 10
+
 export async function followUser(followerId, followingId) {
+  // Enforce max follows limit
+  const currentIds = await getFollowingIds(followerId)
+  if (currentIds.length >= MAX_FOLLOWS) return false
+  if (currentIds.includes(followingId)) return true // already following
+
   const docId = `${followerId}_${followingId}`
   await setDoc(doc(db, 'follows', docId), {
     followerId,
@@ -103,6 +110,7 @@ export async function followUser(followerId, followingId) {
   })
   await updateDoc(doc(db, 'users', followerId), { followingCount: increment(1) })
   await updateDoc(doc(db, 'users', followingId), { followersCount: increment(1) })
+  return true
 }
 
 export async function unfollowUser(followerId, followingId) {

@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Invite-only app — any authenticated user can read/write.
+    // Access is controlled at the application layer (invite approval gate).
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
