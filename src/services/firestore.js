@@ -16,16 +16,29 @@ export async function updateUserLocation(uid, locationData) {
 }
 
 export async function searchUsers(searchText) {
-  if (!searchText || searchText.length < 2) return []
-  const lower = searchText.toLowerCase()
-  const q = query(
+  const lower = searchText?.toLowerCase().trim()
+  if (!lower) return []
+
+  // Run prefix queries on name and email in parallel, then merge
+  const range = (field) => query(
     collection(db, 'users'),
-    where('displayNameLower', '>=', lower),
-    where('displayNameLower', '<=', lower + '\uf8ff'),
+    where(field, '>=', lower),
+    where(field, '<=', lower + '\uf8ff'),
     limit(20)
   )
-  const snap = await getDocs(q)
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  const [nameSnap, emailSnap] = await Promise.all([
+    getDocs(range('displayNameLower')),
+    getDocs(range('emailLower')),
+  ])
+  const seen = new Set()
+  const results = []
+  for (const d of [...nameSnap.docs, ...emailSnap.docs]) {
+    if (!seen.has(d.id)) {
+      seen.add(d.id)
+      results.push({ id: d.id, ...d.data() })
+    }
+  }
+  return results
 }
 
 // --- RECOMMENDATIONS ---

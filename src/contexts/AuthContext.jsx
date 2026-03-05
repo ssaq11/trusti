@@ -56,6 +56,7 @@ export function AuthProvider({ children }) {
           await setDoc(userRef, {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
+            emailLower: firebaseUser.email.toLowerCase(),
             displayName: firebaseUser.displayName || firebaseUser.email.split('@')[0],
             displayNameLower: (firebaseUser.displayName || firebaseUser.email.split('@')[0]).toLowerCase(),
             photoURL: firebaseUser.photoURL || null,
@@ -106,9 +107,16 @@ export function AuthProvider({ children }) {
             setApproved(data.approved === true)
           }
 
+          // Backfill searchable fields for existing accounts
+          const backfill = {}
           if (!data.displayNameLower) {
-            const name = data.displayName || firebaseUser.email.split('@')[0]
-            await updateDoc(userRef, { displayNameLower: name.toLowerCase() })
+            backfill.displayNameLower = (data.displayName || firebaseUser.email.split('@')[0]).toLowerCase()
+          }
+          if (!data.emailLower) {
+            backfill.emailLower = firebaseUser.email.toLowerCase()
+          }
+          if (Object.keys(backfill).length > 0) {
+            await updateDoc(userRef, backfill)
           }
         }
         setUser(firebaseUser)

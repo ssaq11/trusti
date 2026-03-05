@@ -44,7 +44,7 @@ export default function SearchPage() {
   // Search for users
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (query.length < 2) {
+      if (query.length < 1) {
         setUserResults([])
         setSearched(false)
         return
