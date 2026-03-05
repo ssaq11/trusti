@@ -32,14 +32,20 @@ export function AuthProvider({ children }) {
       setLoading(false)
       return
     }
+
+    // Capture referral param NOW, before ProtectedRoute can redirect and drop it from the URL.
+    // Also persist to localStorage so it survives page reloads and tab closures.
+    const urlParams = new URLSearchParams(window.location.search)
+    const urlRef = urlParams.get('ref')
+    if (urlRef) localStorage.setItem('trusti_pending_ref', urlRef)
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userRef = doc(db, 'users', firebaseUser.uid)
         const userSnap = await getDoc(userRef)
 
-        // Check if there's a referral in the URL
-        const params = new URLSearchParams(window.location.search)
-        const referrer = params.get('ref')
+        // Use the param captured at mount time, or the localStorage backup
+        const referrer = urlRef || localStorage.getItem('trusti_pending_ref')
 
         if (!userSnap.exists()) {
           // Check if this is the very first user (auto-approve the founder)
@@ -71,6 +77,7 @@ export function AuthProvider({ children }) {
             } catch (err) {
               console.error('Auto-follow failed:', err)
             }
+            localStorage.removeItem('trusti_pending_ref')
             window.history.replaceState({}, '', window.location.pathname)
           }
         } else {
@@ -93,6 +100,7 @@ export function AuthProvider({ children }) {
             } catch (err) {
               console.error('Auto-follow failed:', err)
             }
+            localStorage.removeItem('trusti_pending_ref')
             window.history.replaceState({}, '', window.location.pathname)
           } else {
             setApproved(data.approved === true)
